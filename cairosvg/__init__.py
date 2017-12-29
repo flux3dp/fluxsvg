@@ -19,7 +19,7 @@ CairoSVG - A simple SVG converter based on Cairo.
 
 """
 
-__version__ = '2.1.2'  # noqa (version is used by relative imports)
+__version__ = '2.1.5'  # noqa (version is used by relative imports)
 
 
 import os
@@ -50,6 +50,10 @@ for _output_format, _surface_type in SURFACES.items():
             'the format for this class', _output_format)
     setattr(sys.modules[__name__], _name, _function)
 
+def parse(bytestring=None):
+    kwargs = {
+    }
+    return SURFACES["SVG"].convert(bytestring, **kwargs).get_array()
 
 def main():
     """Entry-point of the executable."""
@@ -92,5 +96,5 @@ def main():
         options.format or
         os.path.splitext(options.output)[1].lstrip('.') or
         'pdf').upper()
-
+    
     SURFACES[output_format.upper()].convert(**kwargs)

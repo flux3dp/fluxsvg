@@ -35,6 +35,8 @@ def circle(surface, node):
     surface.context.new_sub_path()
     surface.context.arc(cx, cy, r, 0, 2 * pi)
 
+    surface.bcontext.arc(cx, cy, r, 0, 2 * pi)
+
 
 def ellipse(surface, node):
     """Draw an ellipse ``node`` on ``surface``."""
@@ -52,6 +54,11 @@ def ellipse(surface, node):
     surface.context.arc(cx, cy / ratio, rx, 0, 2 * pi)
     surface.context.restore()
 
+    surface.bcontext.save()
+    surface.bcontext.scale(1, ratio)
+    surface.bcontext.arc(cx, cy / ratio, rx, 0, 2 * pi)
+    surface.bcontext.restore()
+
 
 def line(surface, node):
     """Draw a line ``node``."""
@@ -63,11 +70,15 @@ def line(surface, node):
     angle = point_angle(x1, y1, x2, y2)
     node.vertices = [(x1, y1), (pi - angle, angle), (x2, y2)]
 
+    surface.bcontext.move_to(x1, y1)
+    surface.bcontext.line_to(x2, y2)
+
 
 def polygon(surface, node):
     """Draw a polygon ``node`` on ``surface``."""
     polyline(surface, node)
     surface.context.close_path()
+    surface.bcontext.close_path()
 
 
 def polyline(surface, node):
@@ -76,6 +87,7 @@ def polyline(surface, node):
     if points:
         x, y, points = point(surface, points)
         surface.context.move_to(x, y)
+        surface.bcontext.move_to(x, y)
         node.vertices = [(x, y)]
         while points:
             x_old, y_old = x, y
@@ -83,6 +95,7 @@ def polyline(surface, node):
             angle = point_angle(x_old, y_old, x, y)
             node.vertices.append((pi - angle, angle))
             surface.context.line_to(x, y)
+            surface.bcontext.line_to(x, y)
             node.vertices.append((x, y))
 
 
@@ -102,6 +115,7 @@ def rect(surface, node):
 
     if rx == 0 or ry == 0:
         surface.context.rectangle(x, y, width, height)
+        surface.bcontext.rectangle(x, y, width, height)
     else:
         if rx > width / 2:
             rx = width / 2
@@ -125,3 +139,15 @@ def rect(surface, node):
         surface.context.rel_line_to(0, -height + 2 * ry)
         surface.context.rel_curve_to(0, -c2, rx - c1, -ry, rx, -ry)
         surface.context.close_path()
+
+        surface.bcontext.new_path()
+        surface.bcontext.move_to(x + rx, y)
+        surface.bcontext.rel_line_to(width - 2 * rx, 0)
+        surface.bcontext.rel_curve_to(c1, 0, rx, c2, rx, ry)
+        surface.bcontext.rel_line_to(0, height - 2 * ry)
+        surface.bcontext.rel_curve_to(0, c2, c1 - rx, ry, -rx, ry)
+        surface.bcontext.rel_line_to(-width + 2 * rx, 0)
+        surface.bcontext.rel_curve_to(-c1, 0, -rx, -c2, -rx, -ry)
+        surface.bcontext.rel_line_to(0, -height + 2 * ry)
+        surface.bcontext.rel_curve_to(0, -c2, rx - c1, -ry, rx, -ry)
+        surface.bcontext.close_path()

@@ -169,6 +169,8 @@ def paint_mask(surface, node, name, opacity):
         mask_node['height'] / mask_surface.height)
     surface.context.mask_surface(mask_surface.cairo)
     surface.context.restore()
+    
+    #todo use mask 
 
 
 def draw_gradient(surface, node, name):
@@ -351,6 +353,11 @@ def use(surface, node):
     surface.context.save()
     surface.context.translate(
         size(surface, node.get('x'), 'x'), size(surface, node.get('y'), 'y'))
+
+    surface.bcontext.save()
+    surface.bcontext.translate(
+        size(surface, node.get('x'), 'x'), size(surface, node.get('y'), 'y'))
+
     if 'x' in node:
         del node['x']
     if 'y' in node:
@@ -366,6 +373,7 @@ def use(surface, node):
 
     if not match_features(tree.xml_tree):
         surface.context.restore()
+        surface.bcontext.restore()
         return
 
     if tree.tag in ('svg', 'symbol'):
@@ -379,3 +387,4 @@ def use(surface, node):
     node.get('fill', None)
     node.get('stroke', None)
     surface.context.restore()
+    surface.bcontext.restore()

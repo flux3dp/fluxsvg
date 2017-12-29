@@ -19,8 +19,9 @@ Surface helpers.
 
 """
 
-import re
+import re, sys
 from math import atan2, cos, radians, sin, tan
+from beamify import context as beamify
 
 from .surface import cairo
 from .url import parse_url
@@ -222,31 +223,50 @@ def transform(surface, string, gradient=None):
 
     transformations = re.findall(r'(\w+) ?\( ?(.*?) ?\)', normalize(string))
     matrix = cairo.Matrix()
+    bmatrix = beamify.Matrix()
     for transformation_type, transformation in transformations:
         values = [size(surface, value) for value in transformation.split(' ')]
         if transformation_type == 'matrix':
             matrix = cairo.Matrix(*values).multiply(matrix)
+            tmatrix = beamify.Matrix()
+            tmatrix.set_value(values[0], values[1], values[2], values[3], values[4], values[5])
+            bmatrix.premultiply(tmatrix)
         elif transformation_type == 'rotate':
             angle = radians(float(values.pop(0)))
             x, y = values or (0, 0)
             matrix.translate(x, y)
             matrix.rotate(angle)
             matrix.translate(-x, -y)
+
+            bmatrix.translate(x, y)
+            bmatrix.rotate(angle)
+            bmatrix.translate(-x, -y)
         elif transformation_type == 'skewX':
             tangent = tan(radians(float(values[0])))
             matrix = cairo.Matrix(1, 0, tangent, 1, 0, 0).multiply(matrix)
+            bmatrix.skew_x(float(values[0]))
         elif transformation_type == 'skewY':
             tangent = tan(radians(float(values[0])))
             matrix = cairo.Matrix(1, tangent, 0, 1, 0, 0).multiply(matrix)
+            bmatrix.skew_y(float(values[0]))
         elif transformation_type == 'translate':
             if len(values) == 1:
                 values += (0,)
             matrix.translate(*values)
+            print(values, file=sys.stderr)
+            bmatrix.translate(values[0], values[1])
         elif transformation_type == 'scale':
             if len(values) == 1:
                 values = 2 * values
             matrix.scale(*values)
+            print(values, file=sys.stderr)
+            bmatrix.scale(values[0], values[1])
+
+    print("CAIRO HELPER TRANSLATE<br/>", file=sys.stderr)
+    print(bmatrix.data(), file=sys.stderr)
+    print("<br/>\n", file=sys.stderr)
     apply_matrix_transform(surface, matrix, gradient)
+    apply_bmatrix_transform(surface, bmatrix, gradient)
 
 
 def apply_matrix_transform(surface, matrix, gradient=None):
@@ -274,6 +294,32 @@ def apply_matrix_transform(surface, matrix, gradient=None):
             matrix.invert()
             surface.context.transform(matrix)
 
+def apply_bmatrix_transform(surface, bmatrix, gradient=None):
+    """Apply a ``matrix`` to ``surface`` or ``gradient`` if supplied.
+
+    When the matrix is not invertible, this function clips the context to an
+    empty path instead of raising an exception.
+
+    """
+    surface.bcontext.transform(bmatrix)
+    # try:
+    #     inv = beamify.Matrix()
+    #     bmatrix.inverse(inv)
+    # except cairo.Error:
+    #     # Matrix not invertible, clip the surface to an empty path
+    #     raise RuntimeError("Matrix not invertable")
+    #     # active_path = surface.bcontext.copy_path()
+    #     # surface.bcontext.begin_path()
+    #     # surface.bcontext.clip()
+    #     # surface.bcontext.append_path(active_path)
+    # else:
+    #     if gradient:
+    #     #     # When applied on gradient use already inverted matrix (mapping
+    #     #     # from user space to gradient space)
+    #          matrix_now = gradient.get_matrix()
+    #     #     gradient.set_matrix(matrix_now.multiply(matrix))
+    #     else:
+    #         surface.bcontext.transform(inv)
 
 def clip_rect(string):
     """Parse the rect value of a clip."""

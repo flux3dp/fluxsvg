@@ -18,7 +18,7 @@
 Paths manager.
 
 """
-
+import sys
 from math import pi, radians
 
 from .bounding_box import calculate_bounding_box
@@ -150,6 +150,7 @@ def path(surface, node):
         current_point = surface.context.get_current_point()
     else:
         surface.context.move_to(0, 0)
+        surface.bcontext.move_to(0, 0)
         current_point = 0, 0
 
     while string:
@@ -159,6 +160,7 @@ def path(surface, node):
             if last_letter in (None, 'z', 'Z') and letter not in 'mM':
                 node.vertices.append(current_point)
                 first_path_point = current_point
+                print("python:: first_path_point ", current_point, file=sys.stderr)
         elif letter == 'M':
             letter = 'L'
         elif letter == 'm':
@@ -169,10 +171,12 @@ def path(surface, node):
         if letter not in (None, 'm', 'M', 'z', 'Z') and (
                 first_path_point is None):
             first_path_point = current_point
+            print("python:: first_path_point 174 ", letter, current_point, file=sys.stderr)
 
         if letter in 'aA':
             # Elliptic curve
             surface.context.set_tolerance(0.00001)
+            # surface.bcontext.set_tolerance(0.00001)
             x1, y1 = current_point
             rx, ry, string = point(surface, string)
             rotation, string = string.split(' ', 1)
@@ -231,6 +235,9 @@ def path(surface, node):
             arc = (
                 surface.context.arc if sweep else surface.context.arc_negative)
 
+            barc = (
+                surface.bcontext.arc if sweep else surface.bcontext.arc_negative)
+
             # Put the second point and the center back to their positions
             xe, ye = rotate(xe, 0, angle)
             xc, yc = rotate(xc, yc, angle)
@@ -249,6 +256,13 @@ def path(surface, node):
             surface.context.scale(1, radii_ratio)
             arc(xc, yc, rx, angle1, angle2)
             surface.context.restore()
+
+
+            # use ellipse arc instead of arc simulation
+            surface.bcontext.ellipse_arc(rx, ry, rotation, large, sweep, x3, y3)
+
+            # surface.bcontext.rel_line_to(x3, y3);
+
             current_point = current_point[0] + x3, current_point[1] + y3
 
         elif letter == 'c':
@@ -259,7 +273,10 @@ def path(surface, node):
             x3, y3, string = point(surface, string)
             node.vertices.append((
                 point_angle(x2, y2, x1, y1), point_angle(x2, y2, x3, y3)))
+
             surface.context.rel_curve_to(x1, y1, x2, y2, x3, y3)
+            surface.bcontext.rel_curve_to(x1, y1, x2, y2, x3, y3)
+
             current_point = current_point[0] + x3, current_point[1] + y3
 
             # Save absolute values for x and y, useful if next letter is s or S
@@ -277,7 +294,11 @@ def path(surface, node):
             x3, y3, string = point(surface, string)
             node.vertices.append((
                 point_angle(x2, y2, x1, y1), point_angle(x2, y2, x3, y3)))
+            
+            cx = current_point[0]
+            cy = current_point[1]
             surface.context.curve_to(x1, y1, x2, y2, x3, y3)
+            surface.bcontext.curve_to(x1, y1, x2, y2, x3, y3)
             current_point = x3, y3
 
         elif letter == 'h':
@@ -288,6 +309,7 @@ def path(surface, node):
             node.vertices.append((pi - angle, angle))
             x = size(surface, x, 'x')
             surface.context.rel_line_to(x, 0)
+            surface.bcontext.rel_line_to(x, 0)
             current_point = current_point[0] + x, current_point[1]
 
         elif letter == 'H':
@@ -298,6 +320,7 @@ def path(surface, node):
             node.vertices.append((pi - angle, angle))
             x = size(surface, x, 'x')
             surface.context.line_to(x, old_y)
+            surface.bcontext.line_to(x, old_y)
             current_point = x, current_point[1]
 
         elif letter == 'l':
@@ -306,6 +329,7 @@ def path(surface, node):
             angle = point_angle(0, 0, x, y)
             node.vertices.append((pi - angle, angle))
             surface.context.rel_line_to(x, y)
+            surface.bcontext.rel_line_to(x, y)
             current_point = current_point[0] + x, current_point[1] + y
 
         elif letter == 'L':
@@ -315,18 +339,21 @@ def path(surface, node):
             angle = point_angle(old_x, old_y, x, y)
             node.vertices.append((pi - angle, angle))
             surface.context.line_to(x, y)
+            surface.bcontext.line_to(x, y)
             current_point = x, y
 
         elif letter == 'm':
             # Current point relative move
             x, y, string = point(surface, string)
             surface.context.rel_move_to(x, y)
+            surface.bcontext.rel_move_to(x, y)
             current_point = current_point[0] + x, current_point[1] + y
 
         elif letter == 'M':
             # Current point move
             x, y, string = point(surface, string)
             surface.context.move_to(x, y)
+            surface.bcontext.move_to(x, y)
             current_point = x, y
 
         elif letter == 'q':
@@ -337,6 +364,7 @@ def path(surface, node):
             xq1, yq1, xq2, yq2, xq3, yq3 = quadratic_points(
                 x1, y1, x2, y2, x3, y3)
             surface.context.rel_curve_to(xq1, yq1, xq2, yq2, xq3, yq3)
+            surface.bcontext.rel_curve_to(xq1, yq1, xq2, yq2, xq3, yq3)
             node.vertices.append((0, 0))
             current_point = current_point[0] + x3, current_point[1] + y3
 
@@ -348,6 +376,8 @@ def path(surface, node):
             xq1, yq1, xq2, yq2, xq3, yq3 = quadratic_points(
                 x1, y1, x2, y2, x3, y3)
             surface.context.curve_to(xq1, yq1, xq2, yq2, xq3, yq3)
+            surface.bcontext.curve_to(xq1, yq1, xq2, yq2, xq3, yq3)
+            # surface.bcontext.line_to(xq3, yq3)
             node.vertices.append((0, 0))
             current_point = x3, y3
 
@@ -361,6 +391,7 @@ def path(surface, node):
             node.vertices.append((
                 point_angle(x2, y2, x1, y1), point_angle(x2, y2, x3, y3)))
             surface.context.rel_curve_to(x1, y1, x2, y2, x3, y3)
+            surface.bcontext.rel_curve_to(x1, y1, x2, y2, x3, y3)
             current_point = current_point[0] + x3, current_point[1] + y3
 
             # Save absolute values for x and y, useful if next letter is s or S
@@ -381,6 +412,7 @@ def path(surface, node):
             node.vertices.append((
                 point_angle(x2, y2, x1, y1), point_angle(x2, y2, x3, y3)))
             surface.context.curve_to(x1, y1, x2, y2, x3, y3)
+            surface.bcontext.curve_to(x1, y1, x2, y2, x3, y3)
             current_point = x3, y3
 
         elif letter == 't':
@@ -400,6 +432,7 @@ def path(surface, node):
                 x1, y1, x2, y2, x3, y3)
             node.vertices.append((0, 0))
             surface.context.rel_curve_to(xq1, yq1, xq2, yq2, xq3, yq3)
+            surface.bcontext.rel_curve_to(xq1, yq1, xq2, yq2, xq3, yq3)
             current_point = current_point[0] + x3, current_point[1] + y3
 
         elif letter == 'T':
@@ -418,6 +451,7 @@ def path(surface, node):
                 x1, y1, x2, y2, x3, y3)
             node.vertices.append((0, 0))
             surface.context.curve_to(xq1, yq1, xq2, yq2, xq3, yq3)
+            surface.bcontext.curve_to(xq1, yq1, xq2, yq2, xq3, yq3)
             current_point = x3, y3
 
         elif letter == 'v':
@@ -428,6 +462,7 @@ def path(surface, node):
             node.vertices.append((-angle, angle))
             y = size(surface, y, 'y')
             surface.context.rel_line_to(0, y)
+            surface.bcontext.rel_line_to(0, y)
             current_point = current_point[0], current_point[1] + y
 
         elif letter == 'V':
@@ -438,12 +473,14 @@ def path(surface, node):
             node.vertices.append((-angle, angle))
             y = size(surface, y, 'y')
             surface.context.line_to(old_x, y)
+            surface.bcontext.line_to(old_x, y)
             current_point = current_point[0], y
 
         elif letter in 'zZ':
             # End of path
             node.vertices.append(None)
             surface.context.close_path()
+            surface.bcontext.close_path()
             current_point = first_path_point or (0, 0)
 
         if letter not in 'zZ':

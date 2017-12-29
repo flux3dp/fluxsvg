@@ -38,6 +38,8 @@ from .shapes import circle, ellipse, line, polygon, polyline, rect
 from .svg import svg
 from .text import text
 from .url import parse_url
+import sys
+import beamify.context as beamify
 
 SHAPE_ANTIALIAS = {
     'optimizeSpeed': cairo.ANTIALIAS_FAST,
@@ -137,8 +139,11 @@ class Surface(object):
         instance = cls(
             tree, output, dpi, None, parent_width, parent_height, scale)
         instance.finish()
-        if write_to is None:
-            return output.getvalue()
+        # if write_to is None:
+        #     return output.getvalue()
+        instance.bcontext.sort()
+
+        return instance.bcontext
 
     def __init__(self, tree, output, dpi, parent_surface=None,
                  parent_width=None, parent_height=None, scale=1):
@@ -185,13 +190,17 @@ class Surface(object):
             width * self.device_units_per_user_units,
             height * self.device_units_per_user_units)
         self.context = cairo.Context(self.cairo)
+        self.bcontext = beamify.Context()
         # We must scale the context as the surface size is using physical units
         self.context.scale(
+            self.device_units_per_user_units, self.device_units_per_user_units)
+        self.bcontext.scale(
             self.device_units_per_user_units, self.device_units_per_user_units)
         # Initial, non-rounded dimensions
         self.set_context_size(
             width, height, viewbox, scale, preserved_ratio(tree))
         self.context.move_to(0, 0)
+        self.bcontext.move_to(0, 0)
         self.draw(tree)
 
     @property
@@ -221,23 +230,35 @@ class Surface(object):
             self.context_width, self.context_height = x_size, y_size
             x_ratio, y_ratio = width / x_size, height / y_size
             matrix = cairo.Matrix()
+            bmatrix = beamify.Matrix()
             if preserved_ratio and x_ratio > y_ratio:
                 matrix.translate((width - x_size * y_ratio) / 2, 0)
                 matrix.scale(y_ratio, y_ratio)
                 matrix.translate(-x / x_ratio * y_ratio, -y)
+                bmatrix.translate((width - x_size * y_ratio) / 2, 0)
+                bmatrix.scale(y_ratio, y_ratio)
+                bmatrix.translate(-x / x_ratio * y_ratio, -y)
             elif preserved_ratio and x_ratio < y_ratio:
                 matrix.translate(0, (height - y_size * x_ratio) / 2)
                 matrix.scale(x_ratio, x_ratio)
                 matrix.translate(-x, -y / y_ratio * x_ratio)
+                bmatrix.translate(0, (height - y_size * x_ratio) / 2)
+                bmatrix.scale(x_ratio, x_ratio)
+                bmatrix.translate(-x, -y / y_ratio * x_ratio)
             else:
                 matrix.scale(x_ratio, y_ratio)
                 matrix.translate(-x, -y)
+                bmatrix.scale(x_ratio, y_ratio)
+                bmatrix.translate(-x, -y)
+
             apply_matrix_transform(self, matrix)
         else:
             self.context_width, self.context_height = width, height
             if scale != 1:
                 matrix = cairo.Matrix()
                 matrix.scale(scale, scale)
+                bmatrix = beamify.Matrix()
+                bmatrix.scale(scale, scale)
                 apply_matrix_transform(self, matrix)
 
     def finish(self):
@@ -245,6 +266,7 @@ class Surface(object):
         self.cairo.finish()
 
     def draw(self, node):
+        #print("Drawing ", node, file=sys.stderr)
         """Draw ``node`` and its children."""
 
         # Do not draw defs
@@ -264,6 +286,7 @@ class Surface(object):
         self.parent_node = node
         self.font_size = size(self, node.get('font-size', '12pt'))
         self.context.save()
+        self.bcontext.save()
 
         # Apply transformations
         transform(self, node.get('transform'))
@@ -278,11 +301,18 @@ class Surface(object):
 
         if filter_ or mask or (opacity < 1 and node.children):
             self.context.push_group()
+            #self.bcontext.push_group()
 
         # Move to (node.x, node.y)
         self.context.move_to(
             size(self, node.get('x'), 'x'),
             size(self, node.get('y'), 'y'))
+        
+        self.bcontext.move_to(
+            size(self, node.get('x'), 'x'),
+            size(self, node.get('y'), 'y'))
+
+        # print("Move ", size(self, node.get('x'), 'x'), size(self, node.get('y'), 'y'), file=sys.stderr)
 
         # Set node's drawing informations if the ``node.tag`` method exists
         line_cap = node.get('stroke-linecap')
@@ -303,6 +333,7 @@ class Surface(object):
             if sum(dashes):
                 offset = size(self, node.get('stroke-dashoffset'))
                 self.context.set_dash(dashes, offset)
+                # self.bcontext.set_dash(dashes, offset)
 
         miter_limit = float(node.get('stroke-miterlimit', 4))
         self.context.set_miter_limit(miter_limit)
@@ -324,11 +355,20 @@ class Surface(object):
                 left, top, width - left - right, height - top - bottom)
             self.context.restore()
             self.context.clip()
+
+            self.bcontext.save()
+            self.bcontext.translate(x, y)
+            self.bcontext.rectangle(
+                left, top, width - left - right, height - top - bottom)
+            self.bcontext.restore()
+            self.bcontext.clip()
+
         clip_path = parse_url(node.get('clip-path')).fragment
         if clip_path:
             path = self.paths.get(clip_path)
             if path:
                 self.context.save()
+                self.bcontext.save()
                 if path.get('clipPathUnits') == 'objectBoundingBox':
                     x = size(self, node.get('x'), 'x')
                     y = size(self, node.get('y'), 'y')
@@ -336,20 +376,27 @@ class Surface(object):
                     height = size(self, node.get('height'), 'y')
                     self.context.translate(x, y)
                     self.context.scale(width, height)
+                    self.bcontext.translate(x, y)
+                    self.bcontext.scale(width, height)
                 path.tag = 'g'
                 self.stroke_and_fill = False
                 self.draw(path)
                 self.stroke_and_fill = True
                 self.context.restore()
+                self.bcontext.restore()
                 # TODO: fill rules are not handled by cairo for clips
                 # if node.get('clip-rule') == 'evenodd':
                 #     self.context.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
                 self.context.clip()
                 self.context.set_fill_rule(cairo.FILL_RULE_WINDING)
-
+                self.bcontext.clip()
+                # self.bcontext.set_fill_rule(cairo.FILL_RULE_WINDING)
+                
+        # print("Parsing ", node.tag, node, file=sys.stderr)
         # Only draw known tags
         if node.tag in TAGS:
             try:
+                # print("Drawing ", node.tag, file=sys.stderr)
                 TAGS[node.tag](self, node)
             except PointError:
                 # Error in point parsing, do nothing
@@ -383,6 +430,7 @@ class Surface(object):
         if self.stroke_and_fill and visible and node.tag in TAGS:
             # Fill
             self.context.save()
+            self.bcontext.save()
             paint_source, paint_color = paint(node.get('fill', 'black'))
             if not gradient_or_pattern(self, node, paint_source):
                 if node.get('fill-rule') == 'evenodd':
@@ -390,9 +438,11 @@ class Surface(object):
                 self.context.set_source_rgba(*color(paint_color, fill_opacity))
             self.context.fill_preserve()
             self.context.restore()
+            self.bcontext.restore()
 
             # Stroke
             self.context.save()
+            self.bcontext.save()
             self.context.set_line_width(
                 size(self, node.get('stroke-width', '1')))
             paint_source, paint_color = paint(node.get('stroke'))
@@ -401,8 +451,12 @@ class Surface(object):
                     *color(paint_color, stroke_opacity))
             self.context.stroke()
             self.context.restore()
+
+            self.bcontext.stroke()
+            self.bcontext.restore()
         elif not visible:
             self.context.new_path()
+            self.bcontext.new_path()
 
         # Draw path markers
         draw_markers(self, node)
@@ -431,6 +485,7 @@ class Surface(object):
             self.text_path_width = 0
 
         self.context.restore()
+        self.bcontext.restore()
         self.parent_node = old_parent_node
         self.font_size = old_font_size
         self.context_width, self.context_height = old_context_size

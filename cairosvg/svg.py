@@ -40,9 +40,12 @@ def svg(surface, node):
     scale_x, scale_y, translate_x, translate_y = preserve_ratio(surface, node)
     rect_width, rect_height = width, height
     surface.context.translate(*surface.context.get_current_point())
+    surface.bcontext.translate(*surface.context.get_current_point())
     if node.get('overflow', 'hidden') != 'visible':
         surface.context.rectangle(rect_x, rect_y, rect_width, rect_height)
         surface.context.clip()
     surface.context.scale(scale_x, scale_y)
     surface.context.translate(translate_x, translate_y)
+    surface.bcontext.scale(scale_x, scale_y)
+    surface.bcontext.translate(translate_x, translate_y)
     surface.context_width, surface.context_height = rect_width, rect_height
