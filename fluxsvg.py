@@ -21,6 +21,6 @@ CairoSVG entry point.
 
 """
 
-import cairosvg
+import fluxsvg
 
-cairosvg.main()
+fluxsvg.main()

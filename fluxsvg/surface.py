@@ -142,6 +142,7 @@ class Surface(object):
         # if write_to is None:
         #     return output.getvalue()
         instance.bcontext.sort()
+        instance.bcontext.output()
 
         return instance.bcontext
 
@@ -194,8 +195,9 @@ class Surface(object):
         # We must scale the context as the surface size is using physical units
         self.context.scale(
             self.device_units_per_user_units, self.device_units_per_user_units)
-        self.bcontext.scale(
-            self.device_units_per_user_units, self.device_units_per_user_units)
+        # self.bcontext.scale(1.3333, 1.3333)
+        # self.bcontext.scale(
+        #     self.device_units_per_user_units, self.device_units_per_user_units)
         # Initial, non-rounded dimensions
         self.set_context_size(
             width, height, viewbox, scale, preserved_ratio(tree))

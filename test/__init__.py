@@ -22,15 +22,15 @@ Cairo test suite.
 import os
 import imp
 
-import cairosvg
+import fluxsvg
 
 
 reference_cairosvg = imp.load_source(
     'cairosvg_reference', pathname=os.path.join(
-        os.path.dirname(__file__), 'cairosvg_reference', 'cairosvg',
+        os.path.dirname(__file__), 'cairosvg_reference', 'fluxsvg',
         '__init__.py'))
 
-cairosvg.features.LOCALE = reference_cairosvg.features.LOCALE = 'en_US'
+fluxsvg.features.LOCALE = reference_cairosvg.features.LOCALE = 'en_US'
 
 TEST_FOLDER = os.path.join(os.path.dirname(__file__), 'svg')
 

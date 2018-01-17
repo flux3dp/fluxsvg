@@ -19,9 +19,9 @@ CairoSVG helpers tests.
 
 """
 
-from . import cairosvg
+from . import fluxsvg
 
-helpers = cairosvg.helpers
+helpers = fluxsvg.helpers
 
 
 def test_distance():

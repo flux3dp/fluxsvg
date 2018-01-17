@@ -20,7 +20,7 @@ from os import path
 
 from setuptools import setup
 
-init_path = path.join(path.dirname(__file__), 'cairosvg', '__init__.py')
+init_path = path.join(path.dirname(__file__), 'fluxsvg', '__init__.py')
 with open(init_path, 'r', encoding='utf-8') as fd:
     version = re.search("__version__ = '([^']+)'", fd.read().strip()).group(1)
 
@@ -30,7 +30,7 @@ pytest_runner = ['pytest-runner'] if needs_pytest else []
 # When the version is updated, ``cairosvg.__version__`` must be modified.
 # A new section in the ``NEWS`` file must be added too.
 setup(
-    name='CairoSVG',
+    name='FluxSVG',
     version=version,
     description='A Simple SVG Converter based on Cairo',
     long_description=__doc__,
@@ -39,8 +39,8 @@ setup(
     url='http://www.cairosvg.org/',
     license='GNU LGPL v3+',
     platforms='Any',
-    packages=['cairosvg'],
-    provides=['cairosvg'],
+    packages=['fluxsvg'],
+    provides=['fluxsvg'],
     setup_requires=pytest_runner,
     python_requires='>=3.4',
     install_requires=[
@@ -50,7 +50,7 @@ setup(
     extras_require={'test': (
         'pytest-runner', 'pytest-cov', 'pytest-flake8', 'pytest-isort')},
     keywords=['svg', 'convert', 'cairo', 'pdf', 'png', 'postscript'],
-    entry_points={'console_scripts': 'cairosvg=cairosvg:main'},
+    entry_points={'console_scripts': 'fluxsvg=fluxsvg:main'},
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
