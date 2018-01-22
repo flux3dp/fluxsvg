@@ -160,7 +160,6 @@ def path(surface, node):
             if last_letter in (None, 'z', 'Z') and letter not in 'mM':
                 node.vertices.append(current_point)
                 first_path_point = current_point
-                print("python:: first_path_point ", current_point, file=sys.stderr)
         elif letter == 'M':
             letter = 'L'
         elif letter == 'm':
@@ -171,7 +170,6 @@ def path(surface, node):
         if letter not in (None, 'm', 'M', 'z', 'Z') and (
                 first_path_point is None):
             first_path_point = current_point
-            print("python:: first_path_point 174 ", letter, current_point, file=sys.stderr)
 
         if letter in 'aA':
             # Elliptic curve

@@ -20,6 +20,7 @@ Cairo surface creators.
 """
 
 import io
+import types
 
 import cairocffi as cairo
 
@@ -94,6 +95,44 @@ INVISIBLE_TAGS = frozenset((
     'clipPath', 'filter', 'linearGradient', 'marker', 'mask', 'pattern',
     'radialGradient', 'symbol'))
 
+def create_function(name):
+ 
+    def y(self, *args, **kwargs): 
+        name = sys._getframe().f_code.co_name
+        getattr(self.bitmap_context, name)(*args, **kwargs)
+        getattr(self.colors_context, name)(*args, **kwargs)
+        return getattr(self.context, name)(*args, **kwargs)
+ 
+    # This code here is Python verison depended ( works on Py 3.5 - 3.6 )
+    y_code = types.CodeType(y.__code__.co_argcount, \
+                y.__code__.co_kwonlyargcount, \
+                y.__code__.co_nlocals, \
+                y.__code__.co_stacksize, \
+                y.__code__.co_flags, \
+                y.__code__.co_code, \
+                y.__code__.co_consts, \
+                y.__code__.co_names, \
+                y.__code__.co_varnames, \
+                y.__code__.co_filename, \
+                name, \
+                y.__code__.co_firstlineno, \
+                y.__code__.co_lnotab)
+    # print("Cloning %s" % name, file=sys.stderr)
+    return types.FunctionType(y_code, y.__globals__, name)
+
+class SuperContext():
+    def __init__(self, surface, surface2, surface3):
+        self.context = cairo.Context(surface)
+        self.bitmap_context = cairo.Context(surface2)
+        self.colors_context = cairo.Context(surface3)
+        # We just clone all context's functions to supercontext
+        method_list = [func for func in dir(self.context) if callable(getattr(self.context, func))]
+        for method in method_list:
+            if method.startswith("_"):
+                continue
+            setattr(SuperContext, method, create_function(method))
+            pass
+        print("End cloing", file=sys.stderr)
 
 class Surface(object):
     """Abstract base class for CairoSVG surfaces.
@@ -108,6 +147,7 @@ class Surface(object):
 
     # Subclasses must either define this or override _create_surface()
     surface_class = None
+
 
     @classmethod
     def convert(cls, bytestring=None, **kwargs):
@@ -128,7 +168,7 @@ class Surface(object):
         parameters are keyword-only.
 
         """
-        dpi = kwargs.pop('dpi', 96)
+        dpi = kwargs.pop('dpi', 72)
         parent_width = kwargs.pop('parent_width', None)
         parent_height = kwargs.pop('parent_height', None)
         scale = kwargs.pop('scale', 1)
@@ -137,7 +177,7 @@ class Surface(object):
         tree = Tree(**kwargs)
         output = write_to or io.BytesIO()
         instance = cls(
-            tree, output, dpi, None, parent_width, parent_height, scale)
+            tree, [output, io.BytesIO(), io.BytesIO()], dpi, None, parent_width, parent_height, scale)
         instance.finish()
         # if write_to is None:
         #     return output.getvalue()
@@ -146,7 +186,24 @@ class Surface(object):
 
         return instance.bcontext
 
-    def __init__(self, tree, output, dpi, parent_surface=None,
+    @classmethod
+    def divide(cls, bytestring=None, dpi=96):
+        """Divide SVG into layers by colors and bitmap"""
+        parent_width = None
+        parent_height = None
+        scale = 1
+        kwargs = {}
+        kwargs['bytestring'] = bytestring
+        tree = Tree(**kwargs)
+        # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg 
+        output = [io.BytesIO(), io.BytesIO(), io.BytesIO()]
+        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale)
+        instance.finish()
+
+        
+        return output
+
+    def __init__(self, tree, outputs, dpi, parent_surface=None,
                  parent_width=None, parent_height=None, scale=1):
         """Create the surface from a filename or a file-like object.
 
@@ -179,7 +236,8 @@ class Surface(object):
             self.paths = {}
             self.filters = {}
         self._old_parent_node = self.parent_node = None
-        self.output = output
+        self.output = outputs[0]
+        self.outputs = outputs
         self.dpi = dpi
         self.font_size = size(self, '12pt')
         self.stroke_and_fill = True
@@ -187,17 +245,18 @@ class Surface(object):
         width *= scale
         height *= scale
         # Actual surface dimensions: may be rounded on raster surfaces types
-        self.cairo, self.width, self.height = self._create_surface(
+        self.cairo, self.width, self.height = self._create_surface(outputs[0],
             width * self.device_units_per_user_units,
             height * self.device_units_per_user_units)
-        self.context = cairo.Context(self.cairo)
+        self.cairo2 = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
+        self.cairo3 = cairo.SVGSurface(outputs[2], int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
+        self.context = SuperContext(self.cairo, self.cairo2, self.cairo3)
         self.bcontext = beamify.Context()
         # We must scale the context as the surface size is using physical units
-        self.context.scale(
-            self.device_units_per_user_units, self.device_units_per_user_units)
-        # self.bcontext.scale(1.3333, 1.3333)
-        # self.bcontext.scale(
-        #     self.device_units_per_user_units, self.device_units_per_user_units)
+        print("The units scale is %f" % self.device_units_per_user_units, file=sys.stderr)
+        self.context.scale(self.device_units_per_user_units, self.device_units_per_user_units)
+        # self.bitmap_context.scale(self.device_units_per_user_units, self.device_units_per_user_units)
+        # self.bcontext.scale(self.device_units_per_user_units, self.device_units_per_user_units)
         # Initial, non-rounded dimensions
         self.set_context_size(
             width, height, viewbox, scale, preserved_ratio(tree))
@@ -220,9 +279,9 @@ class Surface(object):
         """
         return self.points_per_pixel
 
-    def _create_surface(self, width, height):
+    def _create_surface(self, output, width, height):
         """Create and return ``(cairo_surface, width, height)``."""
-        cairo_surface = self.surface_class(self.output, width, height)
+        cairo_surface = self.surface_class(output, width, height)
         return cairo_surface, width, height
 
     def set_context_size(self, width, height, viewbox, scale, preserved_ratio):
@@ -266,6 +325,7 @@ class Surface(object):
     def finish(self):
         """Read the surface content."""
         self.cairo.finish()
+        self.cairo2.write_to_png(self.outputs[1])
 
     def draw(self, node):
         #print("Drawing ", node, file=sys.stderr)
@@ -434,25 +494,43 @@ class Surface(object):
             self.context.save()
             self.bcontext.save()
             paint_source, paint_color = paint(node.get('fill', 'black'))
+            fill_paint_color = paint_color
             if not gradient_or_pattern(self, node, paint_source):
                 if node.get('fill-rule') == 'evenodd':
                     self.context.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
                 self.context.set_source_rgba(*color(paint_color, fill_opacity))
-            self.context.fill_preserve()
+                self.bcontext.set_source_rgba(*color(paint_color, fill_opacity))
+            # self.context.context.fill_preserve()
+            self.context.colors_context.fill_preserve()
             self.context.restore()
             self.bcontext.restore()
 
             # Stroke
             self.context.save()
             self.bcontext.save()
-            self.context.set_line_width(
-                size(self, node.get('stroke-width', '1')))
+            line_width = float(size(self, node.get('stroke-width', '1')))
             paint_source, paint_color = paint(node.get('stroke'))
+            
             if not gradient_or_pattern(self, node, paint_source):
                 self.context.set_source_rgba(
                     *color(paint_color, stroke_opacity))
-            self.context.stroke()
+                self.bcontext.set_source_rgba(*color(paint_color, stroke_opacity))
+            
+            if color(paint_color, stroke_opacity)[3] == 0:
+                r, g, b, a = color(fill_paint_color, 1)
+                self.context.set_source_rgba(r, g, b, 1)
+            
+            self.context.context.set_line_width(line_width)
+            self.context.colors_context.set_line_width(0)
+            
+            self.context.context.stroke()
+            self.context.colors_context.stroke()
             self.context.restore()
+
+            # TODO: Non-Stroked Path needs a sperate layer on cairo, and use another beamify to stroke the edge
+            if color(paint_color, stroke_opacity)[3] == 0 or line_width > 1:
+                # self.bcontext.set_source_rgba(*color(fill_paint_color, fill_opacity))
+                self.bcontext.hide_path()
 
             self.bcontext.stroke()
             self.bcontext.restore()
@@ -505,9 +583,8 @@ class PSSurface(Surface):
 
 class PNGSurface(Surface):
     """A surface that writes in PNG format."""
-    device_units_per_user_units = 1
 
-    def _create_surface(self, width, height):
+    def _create_surface(self, output, width, height):
         """Create and return ``(cairo_surface, width, height)``."""
         width = int(width)
         height = int(height)
@@ -517,7 +594,7 @@ class PNGSurface(Surface):
     def finish(self):
         """Read the PNG surface content."""
         if self.output is not None:
-            self.cairo.write_to_png(self.output)
+            self.cairo.write_to_png(self.outputs[0])
         return super().finish()
 
 

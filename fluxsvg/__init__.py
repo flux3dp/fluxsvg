@@ -55,6 +55,11 @@ def parse(bytestring=None):
     }
     return SURFACES["SVG"].convert(bytestring, **kwargs).get_array()
 
+def divide(bytestring=None, dpi=96):
+    kwargs = {
+    }
+    return SURFACES["SVG"].divide(bytestring, dpi)
+
 def main():
     """Entry-point of the executable."""
     # Get command-line options
@@ -66,7 +71,7 @@ def main():
         '-f', '--format', help='output format',
         choices=sorted([surface.lower() for surface in SURFACES]))
     parser.add_argument(
-        '-d', '--dpi', default=96, type=float,
+        '-d', '--dpi', default=72, type=float,
         help='ratio between 1 inch and 1 pixel')
     parser.add_argument(
         '-W', '--width', default=None, type=float,
