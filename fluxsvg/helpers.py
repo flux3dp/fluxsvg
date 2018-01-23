@@ -253,18 +253,18 @@ def transform(surface, string, gradient=None):
             if len(values) == 1:
                 values += (0,)
             matrix.translate(*values)
-            print(values, file=sys.stderr)
+            # print(values, file=sys.stderr)
             bmatrix.translate(values[0], values[1])
         elif transformation_type == 'scale':
             if len(values) == 1:
                 values = 2 * values
             matrix.scale(*values)
-            print(values, file=sys.stderr)
+            # print(values, file=sys.stderr)
             bmatrix.scale(values[0], values[1])
 
-    print("CAIRO HELPER TRANSLATE<br/>", file=sys.stderr)
-    print(bmatrix.data(), file=sys.stderr)
-    print("<br/>\n", file=sys.stderr)
+    # print("CAIRO HELPER TRANSLATE<br/>", file=sys.stderr)
+    # print(bmatrix.data(), file=sys.stderr)
+    # print("<br/>\n", file=sys.stderr)
     apply_matrix_transform(surface, matrix, gradient)
     apply_bmatrix_transform(surface, bmatrix, gradient)
 
