@@ -110,4 +110,5 @@ def image(surface, node):
     surface.context.translate(translate_x, translate_y)
     surface.context.bitmap_context.set_source_surface(image_surface)
     surface.context.bitmap_context.paint()
+    surface.bitmap_available = True
     surface.context.restore()

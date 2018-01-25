@@ -199,6 +199,9 @@ class Surface(object):
         instance = cls(tree, output, dpi, None, parent_width, parent_height, scale, mode="fluxstudio")
         instance.finish()
 
+        if not instance.bitmap_available:
+            # Remove bitmap result if no bitmap are drawn
+            output[1] = None
         
         return output
     
@@ -232,6 +235,7 @@ class Surface(object):
 
         """
         self.cairo = None
+        self.bitmap_available = False
         self.context_width, self.context_height = parent_width, parent_height
         self.cursor_position = [0, 0]
         self.cursor_d_position = [0, 0]
@@ -534,31 +538,38 @@ class Surface(object):
             paint_source, paint_color = paint(node.get('stroke'))
             
             if not gradient_or_pattern(self, node, paint_source):
-                self.context.set_source_rgba(
-                    *color(paint_color, stroke_opacity))
-                self.bcontext.set_source_rgba(*color(paint_color, stroke_opacity))
+                self.context.set_source_rgba(*color(paint_color, stroke_opacity))
             
-            # if the element is fill only, no strokes:
-            if color(paint_color, stroke_opacity)[3] == 0:
-                r, g, b, a = color(fill_paint_color, 1)
-                # set context stroke color = fill color
-                self.context.set_source_rgba(r, g, b, 1)
+            if self.mode == "fluxclient":
+                # if the element is fill only, no strokes:
+                if color(paint_color, stroke_opacity)[3] == 0 or line_width > 1:
+                    r, g, b, a = color(fill_paint_color, 1)
+                    # set context stroke color = fill color, and reproduce line
+                    self.context.set_source_rgba(r, g, b, 1)
+                    self.bcontext.hide_path()
+                
+                # write path to main context, and don't writes to fill_context
+                self.context.path_context.set_line_width(line_width)
+                self.context.fill_context.set_line_width(0)
+                self.context.path_context.stroke()
+                self.context.fill_context.stroke()
+
+                # write path to laser cutting canvas
+                self.bcontext.stroke()
+            else:
+                self.context.set_line_width(line_width)
+                if not fill_paint_color == paint_color:
+                    #do not stroke fill context
+                    self.context.path_context.stroke()
+                    self.context.fill_context.set_line_width(0)
+                    self.context.fill_context.stroke()
+                else:
+                    self.context.path_context.stroke()
+                    self.context.fill_context.stroke()
             
-            # write path to main context, and don't writes to fill_context
-            self.context.path_context.set_line_width(line_width)
-            self.context.fill_context.set_line_width(0)
-            
-            self.context.path_context.stroke()
-            self.context.fill_context.stroke()
             self.context.restore()
-
-            # TODO: Non-Stroked Path needs a sperate layer on cairo, and use another beamify to stroke the edge
-            if color(paint_color, stroke_opacity)[3] == 0 or line_width > 1:
-                # self.bcontext.set_source_rgba(*color(fill_paint_color, fill_opacity))
-                self.bcontext.hide_path()
-
-            self.bcontext.stroke()
             self.bcontext.restore()
+
         elif not visible:
             self.context.new_path()
             self.bcontext.new_path()
