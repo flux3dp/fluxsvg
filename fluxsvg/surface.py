@@ -99,7 +99,8 @@ def create_function(name):
  
     def y(self, *args, **kwargs): 
         name = sys._getframe().f_code.co_name
-        getattr(self.bitmap_context, name)(*args, **kwargs)
+        if not self.bitmap_context is None:
+            getattr(self.bitmap_context, name)(*args, **kwargs)
         getattr(self.fill_context, name)(*args, **kwargs)
         return getattr(self.path_context, name)(*args, **kwargs)
  
@@ -121,10 +122,13 @@ def create_function(name):
     return types.FunctionType(y_code, y.__globals__, name)
 
 class SuperContext():
-    def __init__(self, surface, surface2, surface3):
-        self.path_context = cairo.Context(surface)
-        self.bitmap_context = cairo.Context(surface2)
-        self.fill_context = cairo.Context(surface3)
+    def __init__(self, cairo_path, cairo_bitmap, cairo_fill):
+        self.path_context = cairo.Context(cairo_path)
+        if not cairo_bitmap is None:
+            self.bitmap_context = cairo.Context(cairo_bitmap)
+        else:
+            self.bitmap_context = None
+        self.fill_context = cairo.Context(cairo_fill)
         # We just clone all context's functions to supercontext
         method_list = [func for func in dir(self.path_context) if callable(getattr(self.path_context, func))]
         for method in method_list:
@@ -176,7 +180,7 @@ class Surface(object):
         tree = Tree(**kwargs)
         output = write_to or io.BytesIO()
         instance = cls(
-            tree, [output, io.BytesIO(), io.BytesIO()], dpi, None, parent_width, parent_height, scale)
+            tree, [output, io.BytesIO(), None], dpi, None, parent_width, parent_height, scale, mode="fluxclient-parse")
         instance.finish()
         # if write_to is None:
         #     return output.getvalue()
@@ -215,12 +219,12 @@ class Surface(object):
         kwargs['bytestring'] = bytestring
         tree = Tree(**kwargs)
         # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg 
-        output = [io.BytesIO(), io.BytesIO(), io.BytesIO()]
-        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale, mode="fluxclient")
+        output = [io.BytesIO(), None, io.BytesIO()]
+        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale, mode="fluxclient-divide")
         instance.finish()
 
         
-        return (output[0], output[2])
+        return (output[0], output[2], instance.fill_available)
 
     def __init__(self, tree, outputs, dpi, parent_surface=None,
                  parent_width=None, parent_height=None, scale=1, mode="default"):
@@ -236,6 +240,7 @@ class Surface(object):
         """
         self.cairo = None
         self.bitmap_available = False
+        self.fill_available = False
         self.context_width, self.context_height = parent_width, parent_height
         self.cursor_position = [0, 0]
         self.cursor_d_position = [0, 0]
@@ -269,8 +274,11 @@ class Surface(object):
         self.cairo, self.width, self.height = self._create_surface(outputs[0],
             width * self.device_units_per_user_units,
             height * self.device_units_per_user_units)
-        self.cairo_bitmap = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
-        if self.mode == "fluxclient":
+        if self.mode.startswith("fluxstudio"):
+            self.cairo_bitmap = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
+        else:
+            self.cairo_bitmap = None
+        if self.mode.startswith("fluxclient"):
             self.cairo_fill = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         else:
             self.cairo_fill = cairo.SVGSurface(outputs[2], int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
@@ -349,12 +357,13 @@ class Surface(object):
     def finish(self):
         """Read the surface content."""
         self.cairo.finish()
-        self.cairo_bitmap.write_to_png(self.outputs[1])
-        if self.mode == "fluxclient":
+        if not self.cairo_bitmap is None:
+            self.cairo_bitmap.write_to_png(self.outputs[1])
+        if self.mode == "fluxclient-divide":
             self.cairo_fill.write_to_png(self.outputs[2])
 
     def draw(self, node):
-        #print("Drawing ", node, file=sys.stderr)
+        # print("Drawing ", node.tag, node , file=sys.stderr)
         """Draw ``node`` and its children."""
 
         # Do not draw defs
@@ -519,7 +528,10 @@ class Surface(object):
             # Fill
             self.context.save()
             self.bcontext.save()
-            paint_source, paint_color = paint(node.get('fill', 'black'))
+            fill_name = node.get('fill', 'black')
+            if fill_name == 'none':
+                fill_opacity = 0
+            paint_source, paint_color = paint(fill_name)
             fill_paint_color = paint_color
             if not gradient_or_pattern(self, node, paint_source):
                 if node.get('fill-rule') == 'evenodd':
@@ -527,7 +539,12 @@ class Surface(object):
                 self.context.set_source_rgba(*color(paint_color, fill_opacity))
                 self.bcontext.set_source_rgba(*color(paint_color, fill_opacity))
             # self.context.context.fill_preserve()
-            self.context.fill_context.fill_preserve()
+            if color(paint_color, fill_opacity)[3] == 0 or fill_opacity == 0:
+                pass
+            else:
+                if not node.tag in ['svg', 'clipPath']:
+                    self.fill_available = True
+                self.context.fill_context.fill_preserve()
             self.context.restore()
             self.bcontext.restore()
 
@@ -540,7 +557,7 @@ class Surface(object):
             if not gradient_or_pattern(self, node, paint_source):
                 self.context.set_source_rgba(*color(paint_color, stroke_opacity))
             
-            if self.mode == "fluxclient":
+            if self.mode.startswith("fluxclient"):
                 # if the element is fill only, no strokes:
                 if color(paint_color, stroke_opacity)[3] == 0 or line_width > 1:
                     r, g, b, a = color(fill_paint_color, 1)
