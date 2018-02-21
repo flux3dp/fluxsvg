@@ -529,7 +529,7 @@ class Surface(object):
             self.context.save()
             self.bcontext.save()
             fill_name = node.get('fill', 'black')
-            if fill_name == 'none':
+            if fill_name == 'none' or fill_opacity == '#FFF' or fill_name == '#FFFFFF':
                 fill_opacity = 0
             paint_source, paint_color = paint(fill_name)
             fill_paint_color = paint_color
