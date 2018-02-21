@@ -299,7 +299,7 @@ class Surface(object):
     @property
     def points_per_pixel(self):
         """Surface resolution."""
-        return 1
+        return 1 / (self.dpi * UNITS['pt'])
 
     @property
     def device_units_per_user_units(self):
