@@ -111,5 +111,6 @@ def image(surface, node):
     if not surface.context.bitmap_context is None:
         surface.context.bitmap_context.set_source_surface(image_surface)
         surface.context.bitmap_context.paint()
+    # Setting this bitmap_available allows FLUX Studio frontend to read bitmap layer
     surface.bitmap_available = True
     surface.context.restore()

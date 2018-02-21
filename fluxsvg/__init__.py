@@ -55,10 +55,10 @@ def parse(bytestring=None):
     }
     return SURFACES["SVG"].convert(bytestring, **kwargs).get_array()
 
-def divide(bytestring=None, dpi=96):
+def divide(bytestring=None, dpi=72):
     return SURFACES["SVG"].divide(bytestring, dpi)
 
-def divide_path_and_fill(bytestring=None, dpi=96):
+def divide_path_and_fill(bytestring=None, dpi=72):
     return SURFACES["SVG"].divide_path_and_fill(bytestring, dpi)
 
 def main():

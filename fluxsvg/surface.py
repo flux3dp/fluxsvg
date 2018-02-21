@@ -190,7 +190,7 @@ class Surface(object):
         return instance.bcontext
 
     @classmethod
-    def divide(cls, bytestring=None, dpi=96):
+    def divide(cls, bytestring=None, dpi=72):
         """Divide SVG into layers by colors and bitmap"""
         parent_width = None
         parent_height = None
@@ -210,7 +210,7 @@ class Surface(object):
         return output
     
     @classmethod
-    def divide_path_and_fill(cls, bytestring=None, dpi=96):
+    def divide_path_and_fill(cls, bytestring=None, dpi=72):
         """Divide SVG into layers by colors and path"""
         parent_width = None
         parent_height = None
@@ -299,7 +299,7 @@ class Surface(object):
     @property
     def points_per_pixel(self):
         """Surface resolution."""
-        return 1 / (self.dpi * UNITS['pt'])
+        return 1
 
     @property
     def device_units_per_user_units(self):
@@ -583,7 +583,7 @@ class Surface(object):
                 else:
                     self.context.path_context.stroke()
                     self.context.fill_context.stroke()
-            
+                    
             self.context.restore()
             self.bcontext.restore()
 
