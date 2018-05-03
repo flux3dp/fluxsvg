@@ -391,8 +391,8 @@ class Tree(Node):
             if len(bytestring) >= 2 and bytestring[:2] == b'\x1f\x8b':
                 bytestring = gzip.decompress(bytestring)
             tree = ElementTree.fromstring(
-                bytestring, forbid_entities=not unsafe,
-                forbid_external=not unsafe)
+                bytestring, forbid_entities=False,
+                forbid_external=False)
         self.xml_tree = tree
         root = cssselect2.ElementWrapper.from_xml_root(tree)
         style = parent.style if parent else css.parse_stylesheets(self, url)
