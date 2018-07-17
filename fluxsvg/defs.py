@@ -77,6 +77,7 @@ def parse_all_defs(surface, node):
 
 
 def parse_def(surface, node):
+    # print("Parse def", node.tag, node)
     """Parse the SVG definitions."""
     for def_type in (
             'marker', 'gradient', 'pattern', 'path', 'mask', 'filter'):
@@ -382,7 +383,7 @@ def use(surface, node):
         tree.tag = 'svg'
         if 'width' in node and 'height' in node:
             tree['width'], tree['height'] = node['width'], node['height']
-
+    
     surface.draw(tree)
     node.get('fill', None)
     node.get('stroke', None)

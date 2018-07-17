@@ -109,8 +109,26 @@ def image(surface, node):
     surface.context.scale(scale_x, scale_y)
     surface.context.translate(translate_x, translate_y)
     if not surface.context.bitmap_context is None:
+        a, b, c, d, e, f = surface.context.get_matrix().as_tuple()
+        print("Cairo item size: " + str(node.image_width) + ", " + str(node.image_height))
+        print("Cairo bitmap matrix: " + str((a,b,c,d,e,f)))
+        corners = ((0,0), (node.image_width, 0), (0,node.image_height), (node.image_width,node.image_height))
+        for corner in corners:
+            corner_x = a * corner[0] + c * corner[1] + e
+            corner_y = b * corner[0] + d * corner[1] + f
+            print("Corner: " + str((corner_x, corner_y)))
+            if surface.bitmap_min_x is None or surface.bitmap_min_x > corner_x:
+                surface.bitmap_min_x = corner_x
+            if surface.bitmap_min_y is None or surface.bitmap_min_y > corner_y:
+                surface.bitmap_min_y = corner_y
+            if surface.bitmap_max_x is None or surface.bitmap_max_x < corner_x:
+                surface.bitmap_max_x = corner_x
+            if surface.bitmap_max_y is None or surface.bitmap_max_y < corner_y:
+                surface.bitmap_max_y = corner_y
         surface.context.bitmap_context.set_source_surface(image_surface)
         surface.context.bitmap_context.paint()
     # Setting this bitmap_available allows FLUX Studio frontend to read bitmap layer
+    print("Calculated min: " + str((surface.bitmap_min_x, surface.bitmap_min_y)))
+    print("Calculated max: " + str((surface.bitmap_max_x, surface.bitmap_max_y)))
     surface.bitmap_available = True
     surface.context.restore()

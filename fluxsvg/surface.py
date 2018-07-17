@@ -41,6 +41,7 @@ from .text import text
 from .url import parse_url
 import sys
 import beamify.context as beamify
+from PIL import Image
 
 SHAPE_ANTIALIAS = {
     'optimizeSpeed': cairo.ANTIALIAS_FAST,
@@ -190,7 +191,7 @@ class Surface(object):
         return instance.bcontext
 
     @classmethod
-    def divide(cls, bytestring=None, dpi=72):
+    def divide(cls, bytestring=None, params=None, dpi=72):
         """Divide SVG into layers by colors and bitmap"""
         parent_width = None
         parent_height = None
@@ -207,7 +208,13 @@ class Surface(object):
             # Remove bitmap result if no bitmap are drawn
             output[1] = None
         
-        return output
+        result = { 
+            'strokes': output[0], 
+            'bitmap': output[1], 
+            'colors': output[2], 
+            'bitmap_offset': (instance.bitmap_min_x, instance.bitmap_min_y)
+        }
+        return result
     
     @classmethod
     def divide_path_and_fill(cls, bytestring=None, dpi=72):
@@ -240,6 +247,10 @@ class Surface(object):
         """
         self.cairo = None
         self.bitmap_available = False
+        self.bitmap_min_x = None
+        self.bitmap_min_y = None
+        self.bitmap_max_x = None
+        self.bitmap_max_y = None
         self.fill_available = False
         self.context_width, self.context_height = parent_width, parent_height
         self.cursor_position = [0, 0]
@@ -268,6 +279,7 @@ class Surface(object):
         self.font_size = size(self, '12pt')
         self.stroke_and_fill = True
         width, height, viewbox = node_format(self, tree)
+        print("Cairo Width: " + str(width) + " " + str(height))
         width *= scale
         height *= scale
         # Actual surface dimensions: may be rounded on raster surfaces types
@@ -358,7 +370,12 @@ class Surface(object):
         """Read the surface content."""
         self.cairo.finish()
         if not self.cairo_bitmap is None:
-            self.cairo_bitmap.write_to_png(self.outputs[1])
+            if not self.bitmap_min_x is None:
+                image_data = self.cairo_bitmap.write_to_png()
+                image = Image.open(io.BytesIO(image_data)).crop((self.bitmap_min_x, self.bitmap_min_y, self.bitmap_max_x, self.bitmap_max_y))
+                image.save(self.outputs[1], format="PNG")
+            else:
+                self.cairo_bitmap.write_to_png(self.outputs[1])
         if self.mode == "fluxclient-divide":
             self.cairo_fill.write_to_png(self.outputs[2])
 
@@ -493,7 +510,6 @@ class Surface(object):
         # Only draw known tags
         if node.tag in TAGS:
             try:
-                # print("Drawing ", node.tag, file=sys.stderr)
                 TAGS[node.tag](self, node)
             except PointError:
                 # Error in point parsing, do nothing
