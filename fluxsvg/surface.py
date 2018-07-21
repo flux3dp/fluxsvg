@@ -279,7 +279,7 @@ class Surface(object):
         self.font_size = size(self, '12pt')
         self.stroke_and_fill = True
         width, height, viewbox = node_format(self, tree)
-        print("Cairo Width: " + str(width) + " " + str(height))
+        print("Cairo Width: " + str(width) + " " + str(height), file=sys.stderr)
         width *= scale
         height *= scale
         # Actual surface dimensions: may be rounded on raster surfaces types
@@ -447,7 +447,7 @@ class Surface(object):
             if sum(dashes):
                 offset = size(self, node.get('stroke-dashoffset'))
                 self.context.set_dash(dashes, offset)
-                # self.bcontext.set_dash(dashes, offset)
+                self.bcontext.set_dash(dashes, offset)
 
         miter_limit = float(node.get('stroke-miterlimit', 4))
         self.context.set_miter_limit(miter_limit)
