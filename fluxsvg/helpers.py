@@ -233,6 +233,8 @@ def transform(surface, string, gradient=None):
             bmatrix.premultiply(tmatrix)
         elif transformation_type == 'rotate':
             angle = radians(float(values.pop(0)))
+            if len(values) < 2:
+                values = (0, 0)
             x, y = values or (0, 0)
             matrix.translate(x, y)
             matrix.rotate(angle)

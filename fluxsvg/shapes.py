@@ -36,6 +36,7 @@ def circle(surface, node):
     surface.context.arc(cx, cy, r, 0, 2 * pi)
 
     surface.bcontext.arc(cx, cy, r, 0, 2 * pi)
+    surface.bcontext.close_path()
 
 
 def ellipse(surface, node):
@@ -57,6 +58,7 @@ def ellipse(surface, node):
     surface.bcontext.save()
     surface.bcontext.scale(1, ratio)
     surface.bcontext.arc(cx, cy / ratio, rx, 0, 2 * pi)
+    surface.bcontext.close_path()
     surface.bcontext.restore()
 
 
@@ -97,6 +99,7 @@ def polyline(surface, node):
             surface.context.line_to(x, y)
             surface.bcontext.line_to(x, y)
             node.vertices.append((x, y))
+        surface.bcontext.close_path()
 
 
 def rect(surface, node):

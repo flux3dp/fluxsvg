@@ -50,16 +50,17 @@ for _output_format, _surface_type in SURFACES.items():
             'the format for this class', _output_format)
     setattr(sys.modules[__name__], _name, _function)
 
-def parse(bytestring=None):
+def parse(bytestring=None, loop_compensation=0):
     kwargs = {
+        "loop_compensation": loop_compensation
     }
     return SURFACES["SVG"].convert(bytestring, **kwargs).get_array()
 
-def divide(bytestring=None, params=None, dpi=72):
-    return SURFACES["SVG"].divide(bytestring, params=params, dpi=dpi)
+def divide(bytestring=None, params=None, dpi=72, loop_compensation=0):
+    return SURFACES["SVG"].divide(bytestring, params=params, dpi=dpi, loop_compensation=loop_compensation)
 
-def divide_path_and_fill(bytestring=None, dpi=72):
-    return SURFACES["SVG"].divide_path_and_fill(bytestring, dpi)
+def divide_path_and_fill(bytestring=None, dpi=72, loop_compensation=0):
+    return SURFACES["SVG"].divide_path_and_fill(bytestring, dpi=dpi, loop_compensation=loop_compensation)
 
 def main():
     """Entry-point of the executable."""

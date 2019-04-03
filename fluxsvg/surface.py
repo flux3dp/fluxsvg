@@ -176,12 +176,13 @@ class Surface(object):
         parent_width = kwargs.pop('parent_width', None)
         parent_height = kwargs.pop('parent_height', None)
         scale = kwargs.pop('scale', 1)
+        loop_compensation = kwargs.pop('loop_compensation', 0)
         write_to = kwargs.pop('write_to', None)
         kwargs['bytestring'] = bytestring
         tree = Tree(**kwargs)
         output = write_to or io.BytesIO()
         instance = cls(
-            tree, [output, io.BytesIO(), None], dpi, None, parent_width, parent_height, scale, mode="fluxclient-parse")
+            tree, [output, io.BytesIO(), None], dpi, None, parent_width, parent_height, scale, mode="fluxclient-parse", loop_compensation=loop_compensation)
         instance.finish()
         # if write_to is None:
         #     return output.getvalue()
@@ -191,7 +192,7 @@ class Surface(object):
         return instance.bcontext
 
     @classmethod
-    def divide(cls, bytestring=None, params=None, dpi=72):
+    def divide(cls, bytestring=None, params=None, dpi=72, loop_compensation=0):
         """Divide SVG into layers by colors and bitmap"""
         parent_width = None
         parent_height = None
@@ -201,7 +202,7 @@ class Surface(object):
         tree = Tree(**kwargs)
         # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg 
         output = [io.BytesIO(), io.BytesIO(), io.BytesIO()]
-        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale, mode="fluxstudio")
+        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale, mode="fluxstudio", loop_compensation=loop_compensation)
         instance.finish()
 
         if not instance.bitmap_available:
@@ -217,7 +218,7 @@ class Surface(object):
         return result
     
     @classmethod
-    def divide_path_and_fill(cls, bytestring=None, dpi=72):
+    def divide_path_and_fill(cls, bytestring=None, dpi=72, loop_compensation=0):
         """Divide SVG into layers by colors and path"""
         parent_width = None
         parent_height = None
@@ -227,14 +228,14 @@ class Surface(object):
         tree = Tree(**kwargs)
         # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg 
         output = [io.BytesIO(), None, io.BytesIO()]
-        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale, mode="fluxclient-divide")
+        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale, mode="fluxclient-divide", loop_compensation=loop_compensation)
         instance.finish()
 
         
         return (output[0], output[2], instance.fill_available)
 
     def __init__(self, tree, outputs, dpi, parent_surface=None,
-                 parent_width=None, parent_height=None, scale=1, mode="default"):
+                 parent_width=None, parent_height=None, scale=1, mode="default", loop_compensation=0):
         """Create the surface from a filename or a file-like object.
 
         The rendered content is written to ``output`` which can be a filename,
@@ -279,7 +280,9 @@ class Surface(object):
         self.font_size = size(self, '12pt')
         self.stroke_and_fill = True
         width, height, viewbox = node_format(self, tree)
+        print("Cairo start: " + str(mode), file=sys.stderr)
         print("Cairo Width: " + str(width) + " " + str(height), file=sys.stderr)
+        print("Cairo loop compensation: " + str(loop_compensation), file=sys.stderr)
         width *= scale
         height *= scale
         # Actual surface dimensions: may be rounded on raster surfaces types
@@ -296,6 +299,7 @@ class Surface(object):
             self.cairo_fill = cairo.SVGSurface(outputs[2], int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         self.context = SuperContext(self.cairo, self.cairo_bitmap, self.cairo_fill)
         self.bcontext = beamify.Context()
+        self.bcontext.set_compensation_length(loop_compensation);
         # We must scale the context as the surface size is using physical units
         print("The units scale is %f" % self.device_units_per_user_units, file=sys.stderr)
         self.context.scale(self.device_units_per_user_units, self.device_units_per_user_units)
