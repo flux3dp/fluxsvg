@@ -191,14 +191,14 @@ def draw_gradient(surface, node, name):
         height = size(surface, bounding_box[3], 'y')
         width_ref = height_ref = diagonal_ref = 1
 
-    if gradient_node.tag == 'linearGradient':
+    if gradient_node.tag.lower() == 'lineargradient':
         x1 = size(surface, gradient_node.get('x1', '0%'), width_ref)
         x2 = size(surface, gradient_node.get('x2', '100%'), width_ref)
         y1 = size(surface, gradient_node.get('y1', '0%'), height_ref)
         y2 = size(surface, gradient_node.get('y2', '0%'), height_ref)
         gradient_pattern = cairo.LinearGradient(x1, y1, x2, y2)
 
-    elif gradient_node.tag == 'radialGradient':
+    elif gradient_node.tag.lower() == 'radialgradient':
         r = size(surface, gradient_node.get('r', '50%'), diagonal_ref)
         cx = size(surface, gradient_node.get('cx', '50%'), width_ref)
         cy = size(surface, gradient_node.get('cy', '50%'), height_ref)
