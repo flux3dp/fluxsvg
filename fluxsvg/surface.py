@@ -299,7 +299,7 @@ class Surface(object):
             self.cairo_fill = cairo.SVGSurface(outputs[2], int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         self.context = SuperContext(self.cairo, self.cairo_bitmap, self.cairo_fill)
         self.bcontext = beamify.Context()
-        self.bcontext.set_compensation_length(loop_compensation);
+        self.bcontext.set_compensation_length(loop_compensation)
         # We must scale the context as the surface size is using physical units
         print("The units scale is %f" % self.device_units_per_user_units, file=sys.stderr)
         self.context.scale(self.device_units_per_user_units, self.device_units_per_user_units)
