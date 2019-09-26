@@ -162,7 +162,7 @@ def paint_mask(surface, node, name, opacity):
             mask_node['width'], mask_node['height'])
 
     from .surface import SVGSurface  # circular import
-    mask_surface = SVGSurface(mask_node, None, surface.dpi, surface)
+    mask_surface = SVGSurface(mask_node, [None, None, None], surface.dpi, surface)
     surface.context.save()
     surface.context.translate(x, y)
     surface.context.scale(
@@ -273,7 +273,7 @@ def draw_pattern(surface, node, name):
         return False
 
     from .surface import SVGSurface  # circular import
-    pattern_surface = SVGSurface(pattern_node, None, surface.dpi, surface)
+    pattern_surface = SVGSurface(pattern_node, [None, None, None], surface.dpi, surface)
     pattern_pattern = cairo.SurfacePattern(pattern_surface.cairo)
     pattern_pattern.set_extend(cairo.EXTEND_REPEAT)
     pattern_pattern.set_matrix(cairo.Matrix(

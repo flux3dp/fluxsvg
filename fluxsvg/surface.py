@@ -280,6 +280,9 @@ class Surface(object):
         self.font_size = size(self, '12pt')
         self.stroke_and_fill = True
         width, height, viewbox = node_format(self, tree)
+        width = width or (6000 / scale)
+        height = height or (3750 /scale)
+        viewbox = viewbox or (0, 0, 6000, 3750)
         print("Cairo start: " + str(mode), file=sys.stderr)
         print("Cairo Width: " + str(width) + " " + str(height), file=sys.stderr)
         print("Cairo loop compensation: " + str(loop_compensation), file=sys.stderr)
@@ -386,7 +389,7 @@ class Surface(object):
     def draw(self, node):
         # print("Drawing ", node.tag, node , file=sys.stderr)
         """Draw ``node`` and its children."""
-
+        # print(node.tag)
         # Do not draw defs
         if node.tag == 'defs':
             parse_all_defs(self, node)
@@ -412,7 +415,10 @@ class Surface(object):
         # Find and prepare opacity, masks and filters
         mask = parse_url(node.get('mask')).fragment
         filter_ = parse_url(node.get('filter')).fragment
-        opacity = float(node.get('opacity', 1))
+        try: 
+            opacity = float(node.get('opacity', 1))
+        except:
+            opacity = 1
 
         if filter_:
             prepare_filter(self, node, filter_)

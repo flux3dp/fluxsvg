@@ -381,7 +381,7 @@ class Tree(Node):
                 'No input. Use one of bytestring, file_obj or url.')
         if parent and self.url == parent.url:
             root_parent = parent
-            while root_parent.parent:
+            while root_parent.parent != None:
                 root_parent = root_parent.parent
             tree = root_parent.xml_tree
         else:
