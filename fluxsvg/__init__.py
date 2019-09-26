@@ -56,7 +56,7 @@ def parse(bytestring=None, loop_compensation=0):
     }
     return SURFACES["SVG"].convert(bytestring, **kwargs).get_array()
 
-def divide(bytestring=None, params=None, dpi=25.4, loop_compensation=0):
+def divide(bytestring=None, params=None, dpi=72, loop_compensation=0):
     return SURFACES["SVG"].divide(bytestring, params=params, dpi=dpi, loop_compensation=loop_compensation)
 
 def divide_path_and_fill(bytestring=None, dpi=72, loop_compensation=0):

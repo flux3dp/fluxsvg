@@ -293,7 +293,7 @@ class Surface(object):
             width * self.device_units_per_user_units,
             height * self.device_units_per_user_units)
         if self.mode.startswith("fluxstudio"):
-            self.cairo_bitmap = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
+            self.cairo_bitmap = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width * self.device_units_per_user_units * 254 / 72), int(height * self.device_units_per_user_units * 254 / 72))
         else:
             self.cairo_bitmap = None
         if self.mode.startswith("fluxclient"):
@@ -394,7 +394,8 @@ class Surface(object):
         if node.tag == 'defs':
             parse_all_defs(self, node)
             return
-
+        if (node.tag == 'image'):
+            self.context.scale(254 / 72, 254 / 72)
         # Do not draw elements with width or height of 0
         if (('width' in node and size(self, node['width']) == 0) or
            ('height' in node and size(self, node['height']) == 0)):
