@@ -72,9 +72,12 @@ def text(surface, node):
     font_style = getattr(
         cairo, ('font_slant_{}'.format(node.get('font-style')).upper()),
         cairo.FONT_SLANT_NORMAL)
+    if (node.get('font-weight') == '700'):
+        node['font-weight'] = 'bold'
     font_weight = getattr(
         cairo, ('font_weight_{}'.format(node.get('font-weight')).upper()),
         cairo.FONT_WEIGHT_NORMAL)
+    print('font family: ',font_family, 'font weight:', font_weight)
     surface.context.select_font_face(font_family, font_style, font_weight)
     surface.context.set_font_size(surface.font_size)
     ascent, descent, _, max_x_advance, max_y_advance = (
