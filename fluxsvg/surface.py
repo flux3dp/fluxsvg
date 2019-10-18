@@ -282,7 +282,8 @@ class Surface(object):
         width, height, viewbox = node_format(self, tree)
         width = width or (6000 / scale)
         height = height or (3750 /scale)
-        viewbox = viewbox or (0, 0, 6000, 3750)
+        viewbox = viewbox or (0, 0, width, height)
+
         print("Cairo start: " + str(mode), file=sys.stderr)
         print("Cairo Width: " + str(width) + " " + str(height), file=sys.stderr)
         print("Cairo loop compensation: " + str(loop_compensation), file=sys.stderr)
