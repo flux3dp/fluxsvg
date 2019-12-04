@@ -592,15 +592,16 @@ class Surface(object):
                     # set context stroke color = fill color, and reproduce line
                     self.context.set_source_rgba(r, g, b, 1)
                     self.bcontext.hide_path()
-                
-                # write path to main context, and don't writes to fill_context
-                self.context.path_context.set_line_width(line_width)
-                self.context.fill_context.set_line_width(0)
-                self.context.path_context.stroke()
-                self.context.fill_context.stroke()
+                # Stroke only when not filled
+                if not self.fill_available:
+                    # write path to main context, and don't writes to fill_context
+                    self.context.path_context.set_line_width(line_width)
+                    self.context.fill_context.set_line_width(0)
+                    self.context.path_context.stroke()
+                    self.context.fill_context.stroke()
 
-                # write path to laser cutting canvas
-                self.bcontext.stroke()
+                    # write path to laser cutting canvas
+                    self.bcontext.stroke()
             else:
                 self.context.set_line_width(line_width)
                 if not fill_paint_color == paint_color:
