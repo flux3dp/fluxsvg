@@ -20,7 +20,7 @@ Surface helpers.
 """
 
 import re, sys
-from math import atan2, cos, radians, sin, tan
+from math import atan2, cos, radians, sin, tan, isnan
 from beamify import context as beamify
 
 from .surface import cairo
@@ -84,8 +84,11 @@ def node_format(surface, node, reference=True):
     if viewbox:
         viewbox = re.sub('[ \n\r\t,]+', ' ', viewbox)
         viewbox = tuple(float(position) for position in viewbox.split())
-        width = width or viewbox[2]
-        height = height or viewbox[3]
+        if isnan(viewbox[2]) or viewbox[2] == 0 or isnan(viewbox[3]) or viewbox[3] == 0:
+            viewbox = None
+        else:
+            width = width or viewbox[2]
+            height = height or viewbox[3]
     return width, height, viewbox
 
 
@@ -414,6 +417,8 @@ def size(surface, string, reference='xy'):
     for unit, coefficient in UNITS.items():
         if string.endswith(unit):
             number = float(string[:-len(unit)])
+            if isnan(number):
+                number = 0
             return number * (surface.dpi * coefficient if coefficient else 1)
 
     # Unknown size

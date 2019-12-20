@@ -285,7 +285,7 @@ class Surface(object):
         viewbox = viewbox or (0, 0, width, height)
 
         print("Cairo start: " + str(mode), file=sys.stderr)
-        print("Cairo Width: " + str(width) + " " + str(height), file=sys.stderr)
+        print("Cairo Size: " + str(width) + " " + str(height), file=sys.stderr)
         print("Cairo loop compensation: " + str(loop_compensation), file=sys.stderr)
         width *= scale
         height *= scale
