@@ -395,8 +395,6 @@ class Surface(object):
         if node.tag == 'defs':
             parse_all_defs(self, node)
             return
-        if (node.tag == 'image'):
-            self.context.scale(254 / 72, 254 / 72)
         # Do not draw elements with width or height of 0
         if (('width' in node and size(self, node['width']) == 0) or
            ('height' in node and size(self, node['height']) == 0)):
@@ -410,6 +408,9 @@ class Surface(object):
         self.font_size = size(self, node.get('font-size', '12pt'))
         self.context.save()
         self.bcontext.save()
+
+        if (node.tag == 'image'):
+            self.context.scale(254 / 72, 254 / 72)
 
         # Apply transformations
         transform(self, node.get('transform'))
