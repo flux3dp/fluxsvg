@@ -555,10 +555,11 @@ class Surface(object):
         # Fill and stroke
         if self.stroke_and_fill and visible and node.tag in TAGS:
             # Fill
+            node_filled = False
             self.context.save()
             self.bcontext.save()
             fill_name = node.get('fill', 'black')
-            if fill_name == 'none' or fill_opacity == '#FFF' or fill_name == '#FFFFFF':
+            if fill_name == 'none' or fill_name == '#FFF' or fill_name == '#FFFFFF':
                 fill_opacity = 0
             paint_source, paint_color = paint(fill_name)
             fill_paint_color = paint_color
@@ -573,6 +574,7 @@ class Surface(object):
             else:
                 if not node.tag in ['svg', 'clipPath']:
                     self.fill_available = True
+                node_filled = True
                 self.context.fill_context.fill_preserve()
             self.context.restore()
             self.bcontext.restore()
@@ -594,15 +596,18 @@ class Surface(object):
                     self.context.set_source_rgba(r, g, b, 1)
                     self.bcontext.hide_path()
                 # Stroke only when not filled
-                if not self.fill_available:
-                    # write path to main context, and don't writes to fill_context
+                if not node_filled:
                     self.context.path_context.set_line_width(line_width)
-                    self.context.fill_context.set_line_width(0)
-                    self.context.path_context.stroke()
-                    self.context.fill_context.stroke()
+                else:
+                    self.context.path_context.set_line_width(0)
+                
+                # write path to main context, and don't writes to fill_context
+                self.context.fill_context.set_line_width(0)
+                self.context.path_context.stroke()
+                self.context.fill_context.stroke()
 
-                    # write path to laser cutting canvas
-                    self.bcontext.stroke()
+                # write path to laser cutting canvas
+                self.bcontext.stroke()
             else:
                 self.context.set_line_width(line_width)
                 if not fill_paint_color == paint_color:
