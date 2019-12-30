@@ -87,6 +87,7 @@ def polyline(surface, node):
     """Draw a polyline ``node``."""
     points = normalize(node.get('points', ''))
     if points:
+        surface.context.close_path()
         x, y, points = point(surface, points)
         surface.context.move_to(x, y)
         surface.bcontext.move_to(x, y)
@@ -98,7 +99,7 @@ def polyline(surface, node):
             node.vertices.append((pi - angle, angle))
             surface.context.line_to(x, y)
             surface.bcontext.line_to(x, y)
-            node.vertices.append((x, y))
+            node.vertices.append((x, y))        
         surface.bcontext.close_path()
 
 
