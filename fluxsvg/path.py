@@ -144,6 +144,8 @@ def path(surface, node):
     last_letter = None
     string = normalize(string)
 
+    surface.context.close_path()
+
     # Keep the current point because Cairo's get_current_point is not accurate
     # enough. See https://github.com/Kozea/CairoSVG/issues/111.
     if surface.context.has_current_point():

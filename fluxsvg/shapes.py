@@ -99,7 +99,7 @@ def polyline(surface, node):
             node.vertices.append((pi - angle, angle))
             surface.context.line_to(x, y)
             surface.bcontext.line_to(x, y)
-            node.vertices.append((x, y))        
+            node.vertices.append((x, y))  
         surface.bcontext.close_path()
 
 
