@@ -590,7 +590,13 @@ class Surface(object):
             
             if self.mode.startswith("fluxclient"):
                 # if the element is fill only, no strokes:
-                if color(paint_color, stroke_opacity)[3] == 0 or line_width > 1:
+                if color(paint_color, stroke_opacity)[3] == 0:
+                    r, g, b, a = color(fill_paint_color, 0)
+                    # set context stroke color = opacity
+                    self.context.set_source_rgba(r, g, b, 0)
+                    self.bcontext.hide_path()
+                # if the element is filled by linewidth
+                elif line_width > 1:
                     r, g, b, a = color(fill_paint_color, 1)
                     # set context stroke color = fill color, and reproduce line
                     self.context.set_source_rgba(r, g, b, 1)
@@ -618,7 +624,7 @@ class Surface(object):
                 else:
                     self.context.path_context.stroke()
                     self.context.fill_context.stroke()
-                    
+
             self.context.restore()
             self.bcontext.restore()
 
