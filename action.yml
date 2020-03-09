@@ -1,0 +1,7 @@
+---
+name: 'Install fluxsvg'
+description: 'Install fluxsvg, package for analyze svg to gcode'
+author: 'Flux'
+runs:
+  using: 'node12'
+  main: 'index.js'
