@@ -410,7 +410,8 @@ class Surface(object):
         self.bcontext.save()
 
         if (node.tag == 'image'):
-            self.context.scale(254 / 72, 254 / 72)
+            mat = self.context.get_matrix()
+            self.context.set_matrix(mat.multiply(cairo.Matrix(xx=254 / 72, yy=254 / 72)))
 
         # Apply transformations
         transform(self, node.get('transform'))
