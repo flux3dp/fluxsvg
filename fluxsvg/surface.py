@@ -196,7 +196,7 @@ class Surface(object):
         """Divide SVG into layers by colors and bitmap"""
         parent_width = None
         parent_height = None
-        scale = 1
+        scale = 254 / 72 # Scaling from inch to pixel
         kwargs = {}
         kwargs['bytestring'] = bytestring
         tree = Tree(**kwargs)
@@ -294,7 +294,7 @@ class Surface(object):
             width * self.device_units_per_user_units,
             height * self.device_units_per_user_units)
         if self.mode.startswith("fluxstudio"):
-            self.cairo_bitmap = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width * self.device_units_per_user_units * 254 / 72), int(height * self.device_units_per_user_units * 254 / 72))
+            self.cairo_bitmap = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         else:
             self.cairo_bitmap = None
         if self.mode.startswith("fluxclient"):
@@ -408,10 +408,6 @@ class Surface(object):
         self.font_size = size(self, node.get('font-size', '12pt'))
         self.context.save()
         self.bcontext.save()
-
-        if (node.tag == 'image'):
-            mat = self.context.get_matrix()
-            self.context.set_matrix(mat.multiply(cairo.Matrix(xx=254 / 72, yy=254 / 72)))
 
         # Apply transformations
         transform(self, node.get('transform'))
