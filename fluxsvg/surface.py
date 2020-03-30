@@ -192,11 +192,11 @@ class Surface(object):
         return instance.bcontext
 
     @classmethod
-    def divide(cls, bytestring=None, params=None, dpi=72, loop_compensation=0):
+    def divide(cls, bytestring=None, params={}, dpi=72, loop_compensation=0):
         """Divide SVG into layers by colors and bitmap"""
         parent_width = None
         parent_height = None
-        scale = 254 / 72 # Scaling from inch to pixel
+        scale = params.get('scale', 254 / 72) # Scaling from inch to pixel
         kwargs = {}
         kwargs['bytestring'] = bytestring
         tree = Tree(**kwargs)
