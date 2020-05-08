@@ -21,6 +21,10 @@ Cairo surface creators.
 
 import io
 import types
+import logging
+
+logger = logging.getLogger("FLUXSVG.surface")
+logger.info('Importing cairocffi')
 
 import cairocffi as cairo
 

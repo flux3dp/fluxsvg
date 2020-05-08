@@ -72,7 +72,7 @@ def text(surface, node):
     font_style = getattr(
         cairo, ('font_slant_{}'.format(node.get('font-style')).upper()),
         cairo.FONT_SLANT_NORMAL)
-    if (node.get('font-weight') == '700'):
+    if (node.get('font-weight') in ['700', '800', '900']):
         node['font-weight'] = 'bold'
     font_weight = getattr(
         cairo, ('font_weight_{}'.format(node.get('font-weight')).upper()),
