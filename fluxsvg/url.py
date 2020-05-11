@@ -18,7 +18,7 @@
 Utils dealing with URLs.
 
 """
-
+import sys
 import os.path
 import re
 from urllib.parse import urljoin, urlparse
@@ -89,8 +89,8 @@ def read_url(url, url_fetcher, resource_type):
 
     If ``url_fetcher`` is None a default (no limitations) URLFetcher is used.
     """
-    if url.scheme:
+    if url.scheme in ['http', 'https', 'data']:
         url = url.geturl()
     else:
-        url = 'file://{}'.format(os.path.abspath(url.geturl()))
+        url = 'file://{}'.format(os.path.abspath(url.geturl())) if not sys.platform == 'win32' else 'file:///{}'.format(os.path.abspath(url.geturl()))
     return url_fetcher(url, resource_type)
