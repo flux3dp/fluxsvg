@@ -22,6 +22,7 @@ Cairo surface creators.
 import io
 import types
 import logging
+import traceback
 
 logger = logging.getLogger("FLUXSVG.surface")
 logger.info('Importing cairocffi')
@@ -283,6 +284,8 @@ class Surface(object):
         self.mode = mode
         self.font_size = size(self, '12pt')
         self.stroke_and_fill = True
+        # Avoid recursive href
+        self.ref_set = set()
         width, height, viewbox = node_format(self, tree)
         width = width or (6000 / scale)
         height = height or (3750 /scale)
@@ -528,6 +531,10 @@ class Surface(object):
             except PointError:
                 # Error in point parsing, do nothing
                 pass
+            except Exception:
+                logger.error(f'When drawing {node.tag}, {node}, Exception Occured:\n{traceback.format_exc()}')
+                logger.error('Ignore this node.')
+
 
         # Get stroke and fill opacity
         stroke_opacity = float(node.get('stroke-opacity', 1))

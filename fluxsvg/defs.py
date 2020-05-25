@@ -368,11 +368,20 @@ def use(surface, node):
     if 'mask' in node:
         del node['mask']
     href = parse_url(node.get('{http://www.w3.org/1999/xlink}href')).geturl()
+    if not href in surface.ref_set:
+        surface.ref_set.add(href)
+    else:
+        surface.context.restore()
+        surface.bcontext.restore()
+        return
+
     tree = Tree(
         url=href, url_fetcher=node.url_fetcher, parent=node,
         tree_cache=surface.tree_cache, unsafe=node.unsafe)
 
     if not match_features(tree.xml_tree):
+        if href in surface.ref_set:
+            surface.ref_set.remove(href)
         surface.context.restore()
         surface.bcontext.restore()
         return
@@ -385,6 +394,8 @@ def use(surface, node):
             tree['width'], tree['height'] = node['width'], node['height']
     
     surface.draw(tree)
+    if href in surface.ref_set:
+        surface.ref_set.remove(href)
     node.get('fill', None)
     node.get('stroke', None)
     surface.context.restore()
