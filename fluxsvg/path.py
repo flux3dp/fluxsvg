@@ -152,7 +152,7 @@ def path(surface, node):
         surface.context.move_to(0, 0)
         surface.bcontext.move_to(0, 0)
         current_point = 0, 0
-
+    hasClosed = True
     while string:
         string = string.strip()
         if string.split(' ', 1)[0] in PATH_LETTERS:
@@ -480,9 +480,16 @@ def path(surface, node):
             surface.context.close_path()
             surface.bcontext.close_path()
             current_point = first_path_point or (0, 0)
+            hasClosed = True
 
         if letter not in 'zZ':
+            hasClosed = False
             node.vertices.append(current_point)
 
         string = string.strip()
         last_letter = letter
+
+    if not hasClosed and first_path_point and current_point and (first_path_point[0] == current_point[0] and first_path_point[1] == current_point[1]):
+        node.vertices.append(None)
+        surface.context.close_path()
+        surface.bcontext.close_path()
