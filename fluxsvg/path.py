@@ -159,17 +159,18 @@ def path(surface, node):
             letter, string = (string + ' ').split(' ', 1)
             if last_letter in (None, 'z', 'Z') and letter not in 'mM':
                 node.vertices.append(current_point)
-                first_path_point = current_point
+        # but M and m are in PATH_LETTERS
         elif letter == 'M':
             letter = 'L'
         elif letter == 'm':
             letter = 'l'
 
-        if last_letter in (None, 'm', 'M', 'z', 'Z'):
-            first_path_point = None
-        if letter not in (None, 'm', 'M', 'z', 'Z') and (
-                first_path_point is None):
-            first_path_point = current_point
+        # I think this is wrong, should set first_path_point at every M,m
+        # if last_letter in (None, 'm', 'M', 'z', 'Z'):
+        #     first_path_point = None
+        # if letter not in (None, 'm', 'M', 'z', 'Z') and (
+        #         first_path_point is None):
+        #     first_path_point = current_point
 
         if letter in 'aA':
             # Elliptic curve
@@ -346,6 +347,7 @@ def path(surface, node):
             surface.context.rel_move_to(x, y)
             surface.bcontext.rel_move_to(x, y)
             current_point = current_point[0] + x, current_point[1] + y
+            first_path_point = current_point
 
         elif letter == 'M':
             # Current point move
@@ -353,6 +355,7 @@ def path(surface, node):
             surface.context.move_to(x, y)
             surface.bcontext.move_to(x, y)
             current_point = x, y
+            first_path_point = current_point
 
         elif letter == 'q':
             # Relative quadratic curve
