@@ -532,7 +532,7 @@ class Surface(object):
                 # Error in point parsing, do nothing
                 pass
             except Exception:
-                logger.error(f'When drawing {node.tag}, {node}, Exception Occured:\n{traceback.format_exc()}')
+                logger.error('When drawing {}, {}, Exception Occured:\n{}'.format(node.tag, node, traceback.format_exc()))
                 logger.error('Ignore this node.')
 
 
