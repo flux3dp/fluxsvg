@@ -442,8 +442,8 @@ def path(surface, node):
             if last_letter not in 'QqTt':
                 x2, y2, x3, y3 = abs_x, abs_y, abs_x, abs_y
             elif last_letter in 'qt':
-                x2 += x1
-                y2 += y1
+                x2 += abs_x
+                y2 += abs_y
             x2 = 2 * abs_x - x2
             y2 = 2 * abs_y - y2
             x1, y1 = abs_x, abs_y
