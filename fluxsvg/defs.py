@@ -169,6 +169,7 @@ def paint_mask(surface, node, name, opacity):
         mask_node['width'] / mask_surface.width,
         mask_node['height'] / mask_surface.height)
     surface.context.mask_surface(mask_surface.cairo)
+    surface.context.paint_with_alpha(opacity)
     surface.context.restore()
     
     #todo use mask 
