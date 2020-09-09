@@ -38,6 +38,7 @@ UNITS = {
 PAINT_URL = re.compile(r'(url\(.+\)) *(.*)')
 PATH_LETTERS = 'achlmqstvzACHLMQSTVZ'
 RECT = re.compile(r'rect\( ?(.+?) ?\)')
+INKSCAPE_NS = '{http://www.inkscape.org/namespaces/inkscape}'
 
 
 class PointError(Exception):
@@ -423,3 +424,11 @@ def size(surface, string, reference='xy'):
 
     # Unknown size
     return 0
+
+def get_layer_name(node):
+    layer_name = None
+    if node.get(INKSCAPE_NS + 'groupmode', None) == 'layer':
+        layer_name = node.get(INKSCAPE_NS + 'label', None)
+    if layer_name is None:
+        layer_name = node.get('id', None)
+    return layer_name

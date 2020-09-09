@@ -59,6 +59,9 @@ def parse(bytestring=None, loop_compensation=0):
 def divide(bytestring=None, params=None, dpi=72, loop_compensation=0):
     return SURFACES["SVG"].divide(bytestring, params=params, dpi=dpi, loop_compensation=loop_compensation)
 
+def divide_by_layer(bytestring=None, params=None, dpi=72, loop_compensation=0):
+    return SURFACES["SVG"].divide_by_layer(bytestring, params=params, dpi=dpi, loop_compensation=loop_compensation)
+
 def divide_path_and_fill(bytestring=None, dpi=72, loop_compensation=0):
     return SURFACES["SVG"].divide_path_and_fill(bytestring, dpi=dpi, loop_compensation=loop_compensation)
 

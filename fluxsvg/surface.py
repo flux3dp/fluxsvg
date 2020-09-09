@@ -36,7 +36,7 @@ from .defs import (
     parse_all_defs, pattern, prepare_filter, radial_gradient, use)
 from .helpers import (
     UNITS, PointError, apply_matrix_transform, clip_rect, node_format,
-    normalize, paint, preserved_ratio, size, transform)
+    normalize, paint, preserved_ratio, size, transform, get_layer_name)
 from .image import image
 from .parser import Tree
 from .path import draw_markers, path
@@ -207,13 +207,13 @@ class Surface(object):
         tree = Tree(**kwargs)
         # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg 
         output = [io.BytesIO(), io.BytesIO(), io.BytesIO()]
-        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale, mode="fluxstudio", loop_compensation=loop_compensation)
+        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale, mode="beamstudio", loop_compensation=loop_compensation)
         instance.finish()
 
         if not instance.bitmap_available:
             # Remove bitmap result if no bitmap are drawn
             output[1] = None
-        
+
         result = { 
             'strokes': output[0], 
             'bitmap': output[1], 
@@ -221,6 +221,26 @@ class Surface(object):
             'bitmap_offset': (instance.bitmap_min_x, instance.bitmap_min_y)
         }
         return result
+
+    @classmethod
+    def divide_by_layer(cls, bytestring=None, params={}, dpi=72, loop_compensation=0):
+        """Divide SVG into layers by colors and bitmap"""
+        parent_width = None
+        parent_height = None
+        scale = params.get('scale', 254 / 72) # Scaling from inch to pixel
+        kwargs = {}
+        kwargs['bytestring'] = bytestring
+        tree = Tree(**kwargs)
+        # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg 
+        output = {'nolayer': io.BytesIO(), 'bitmap': io.BytesIO()}
+        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale, mode="beamstudio-by-layer", loop_compensation=loop_compensation)
+        instance.finish()
+
+        if not instance.bitmap_available:
+            # Remove bitmap result if no bitmap are drawn
+            output['bitmap'] = None
+        output ['bitmap_offset'] = (instance.bitmap_min_x, instance.bitmap_min_y)
+        return output
     
     @classmethod
     def divide_path_and_fill(cls, bytestring=None, dpi=72, loop_compensation=0):
@@ -263,6 +283,7 @@ class Surface(object):
         self.cursor_d_position = [0, 0]
         self.text_path_width = 0
         self.tree_cache = {(tree.url, tree.get('id')): tree}
+        self.root_node = tree
         if parent_surface:
             self.markers = parent_surface.markers
             self.gradients = parent_surface.gradients
@@ -278,7 +299,8 @@ class Surface(object):
             self.paths = {}
             self.filters = {}
         self._old_parent_node = self.parent_node = None
-        self.output = outputs[0]
+        self.is_by_layer = mode in ['beamstudio-by-layer']
+        self.output = outputs[0] if not self.is_by_layer else outputs['nolayer']
         self.outputs = outputs
         self.dpi = dpi
         self.mode = mode
@@ -296,18 +318,28 @@ class Surface(object):
         print("Cairo loop compensation: " + str(loop_compensation), file=sys.stderr)
         width *= scale
         height *= scale
+        self.root_width, self.root_height, self.root_scale, self.root_viewbox = width, height, scale, viewbox
         # Actual surface dimensions: may be rounded on raster surfaces types
-        self.cairo, self.width, self.height = self._create_surface(outputs[0],
-            width * self.device_units_per_user_units,
-            height * self.device_units_per_user_units)
-        if self.mode.startswith("fluxstudio"):
+        if self.is_by_layer:
+            self.cairo, self.width, self.height = self._create_surface(outputs['nolayer'],
+                width * self.device_units_per_user_units,
+                height * self.device_units_per_user_units)
+        else:
+            self.cairo, self.width, self.height = self._create_surface(outputs[0],
+                width * self.device_units_per_user_units,
+                height * self.device_units_per_user_units)
+
+        if self.mode.startswith("beamstudio"):
             self.cairo_bitmap = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         else:
             self.cairo_bitmap = None
         if self.mode.startswith("fluxclient"):
             self.cairo_fill = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         else:
-            self.cairo_fill = cairo.SVGSurface(outputs[2], int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
+            if self.is_by_layer:
+                self.cairo_fill = self.cairo
+            else:
+                self.cairo_fill = cairo.SVGSurface(outputs[2], int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         self.context = SuperContext(self.cairo, self.cairo_bitmap, self.cairo_fill)
         self.bcontext = beamify.Context()
         self.bcontext.set_compensation_length(loop_compensation)
@@ -342,6 +374,21 @@ class Surface(object):
         """Create and return ``(cairo_surface, width, height)``."""
         cairo_surface = self.surface_class(output, width, height)
         return cairo_surface, width, height
+
+    def start_layer_surface(self, layer_name):
+        if not layer_name:
+            return
+        self.outputs[layer_name] = io.BytesIO()
+        self.layer_surface, _, _ = self._create_surface(self.outputs[layer_name],
+            self.root_width * self.device_units_per_user_units,
+            self.root_height * self.device_units_per_user_units)
+        layer_context = SuperContext(self.layer_surface, self.cairo_bitmap ,self.layer_surface)
+        self.context = layer_context
+        return layer_context
+    
+    def end_layer_surface(self):
+        self.layer_surface.finish()
+        return
 
     def set_context_size(self, width, height, viewbox, scale, preserved_ratio):
         """Set the Cairo context size, set the SVG viewport size."""
@@ -385,12 +432,13 @@ class Surface(object):
         """Read the surface content."""
         self.cairo.finish()
         if not self.cairo_bitmap is None:
+            bitmapIO = self.outputs['bitmap'] if self.is_by_layer else self.outputs[1]
             if not self.bitmap_min_x is None:
                 image_data = self.cairo_bitmap.write_to_png()
                 image = Image.open(io.BytesIO(image_data)).crop((self.bitmap_min_x, self.bitmap_min_y, self.bitmap_max_x, self.bitmap_max_y))
-                image.save(self.outputs[1], format="PNG")
+                image.save(bitmapIO, format="PNG")
             else:
-                self.cairo_bitmap.write_to_png(self.outputs[1])
+                self.cairo_bitmap.write_to_png(bitmapIO)
         if self.mode == "fluxclient-divide":
             self.cairo_fill.write_to_png(self.outputs[2])
 
@@ -564,6 +612,7 @@ class Surface(object):
         if self.stroke_and_fill and visible and node.tag in TAGS:
             # Fill
             node_filled = False
+            is_gradient_or_pattern = False
             self.context.save()
             self.bcontext.save()
             fill_name = node.get('fill', 'black')
@@ -576,8 +625,10 @@ class Surface(object):
                     self.context.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
                 self.context.set_source_rgba(*color(paint_color, fill_opacity))
                 self.bcontext.set_source_rgba(*color(paint_color, fill_opacity))
+            else:
+                is_gradient_or_pattern = True
             # self.context.context.fill_preserve()
-            if color(paint_color, fill_opacity)[3] == 0 or fill_opacity == 0:
+            if not is_gradient_or_pattern and (color(paint_color, fill_opacity)[3] == 0 or fill_opacity == 0):
                 pass
             else:
                 if not node.tag in ['svg', 'clipPath']:
@@ -592,7 +643,7 @@ class Surface(object):
             self.bcontext.save()
             line_width = float(size(self, node.get('stroke-width', '1')))
             paint_source, paint_color = paint(node.get('stroke'))
-            
+
             if not gradient_or_pattern(self, node, paint_source):
                 self.context.set_source_rgba(*color(paint_color, stroke_opacity))
             
@@ -646,7 +697,28 @@ class Surface(object):
         # Draw children
         if display and node.tag not in INVISIBLE_TAGS:
             for child in node.children:
+                layer_name = None
+                root_context = None
+                if self.is_by_layer and node == self.root_node and child.tag == 'g':
+                    layer_name = get_layer_name(child)
+                    if layer_name in self.outputs:
+                        i = 2
+                        while '{}_{}'.format(layer_name, i) in self.outputs:
+                            i += 1 
+                if layer_name and layer_name != 'nolayer':
+                    print('Create new surface & context for', layer_name)
+                    root_context = self.context
+                    layer_context = self.start_layer_surface(layer_name)
+                    self.context = layer_context
+                    self.context.scale(self.device_units_per_user_units, self.device_units_per_user_units)
+                    self.set_context_size(
+                        self.root_width, self.root_height, self.root_viewbox, self.root_scale, preserved_ratio(self.root_node))
+                    self.context.move_to(0, 0)
                 self.draw(child)
+                if layer_name and layer_name != 'nolayer':
+                    print(layer_name, 'Ended')
+                    self.end_layer_surface()
+                    self.context = root_context
 
         # Apply filter, mask and opacity
         if filter_ or mask or (opacity < 1 and node.children):
