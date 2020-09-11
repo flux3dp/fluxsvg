@@ -675,6 +675,8 @@ class Surface(object):
                 self.bcontext.stroke()
             else:
                 self.context.set_line_width(line_width)
+                if self.is_by_layer:
+                    self.context.set_line_width(1)
                 if not fill_paint_color == paint_color:
                     #do not stroke fill context
                     self.context.path_context.stroke()
