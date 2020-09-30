@@ -708,7 +708,7 @@ class Surface(object):
                         while '{}_{}'.format(layer_name, i) in self.outputs:
                             i += 1 
                 if layer_name and layer_name != 'nolayer':
-                    print('Create new surface & context for', layer_name)
+                    logger.info('Create new surface & context for {}'.format(layer_name))
                     root_context = self.context
                     layer_context = self.start_layer_surface(layer_name)
                     self.context = layer_context
@@ -718,7 +718,7 @@ class Surface(object):
                     self.context.move_to(0, 0)
                 self.draw(child)
                 if layer_name and layer_name != 'nolayer':
-                    print(layer_name, 'Ended')
+                    logger.info('{} Ended'.format(layer_name))
                     self.end_layer_surface()
                     self.context = root_context
 
