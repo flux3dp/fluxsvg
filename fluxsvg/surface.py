@@ -48,6 +48,8 @@ import sys
 import beamify.context as beamify
 from PIL import Image
 
+Image.MAX_IMAGE_PIXELS = 1e10
+
 SHAPE_ANTIALIAS = {
     'optimizeSpeed': cairo.ANTIALIAS_FAST,
     'crispEdges': cairo.ANTIALIAS_NONE,
