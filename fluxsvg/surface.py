@@ -699,7 +699,7 @@ class Surface(object):
         draw_markers(self, node)
 
         # Draw children
-        if display and node.tag not in INVISIBLE_TAGS:
+        if display and node.tag not in INVISIBLE_TAGS and node.tag not in PATH_TAGS:
             for child in node.children:
                 layer_name = None
                 root_context = None
