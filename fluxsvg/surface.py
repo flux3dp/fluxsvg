@@ -587,8 +587,17 @@ class Surface(object):
 
 
         # Get stroke and fill opacity
-        stroke_opacity = float(node.get('stroke-opacity', 1))
-        fill_opacity = float(node.get('fill-opacity', 1))
+        stroke_opacity = node.get('stroke-opacity', 1)
+        try:
+            stroke_opacity = float(stroke_opacity)
+        except:
+            stroke_opacity = 1
+        fill_opacity = node.get('fill-opacity', 1)
+        try:
+            fill_opacity = float(fill_opacity)
+        except:
+            fill_opacity = 1
+
         if opacity < 1 and not node.children:
             stroke_opacity *= opacity
             fill_opacity *= opacity
