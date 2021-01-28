@@ -167,6 +167,7 @@ def text(surface, node):
         surface.text_path_width += start_offset - x_align
         bounding_box = extend_bounding_box(bounding_box, ((start_offset, 0),))
 
+    is_first_char = True
     if node.text:
         for [x, y, dx, dy, r], letter in letters_positions:
             if x:
@@ -200,8 +201,13 @@ def text(surface, node):
                 surface.context.save()
                 x = surface.cursor_position[0] if x is None else x
                 y = surface.cursor_position[1] if y is None else y
-                surface.context.move_to(x + letter_spacing, y)
-                cursor_position = x + letter_spacing + extents, y
+                if is_first_char:
+                    surface.context.move_to(x, y)
+                    cursor_position = x + extents, y
+                    is_first_char = False
+                else:
+                    surface.context.move_to(x + letter_spacing, y)
+                    cursor_position = x + letter_spacing + extents, y
                 surface.context.rel_move_to(*surface.cursor_d_position)
                 surface.context.rel_move_to(-x_align, y_align)
                 surface.context.rotate(last_r if r is None else r)
