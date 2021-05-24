@@ -144,14 +144,18 @@ def path(surface, node):
     last_letter = None
     string = normalize(string)
 
-    # Keep the current point because Cairo's get_current_point is not accurate
-    # enough. See https://github.com/Kozea/CairoSVG/issues/111.
-    if surface.context.has_current_point():
-        current_point = surface.context.get_current_point()
-    else:
-        surface.context.move_to(0, 0)
-        surface.bcontext.move_to(0, 0)
-        current_point = 0, 0
+    # This will cause wrong render for path starting with "m"
+    # So I alway move to (0, 0) before every path
+    # if surface.context.has_current_point():
+    #     current_point = surface.context.get_current_point()
+    # else:
+    #     surface.context.move_to(0, 0)
+    #     surface.bcontext.move_to(0, 0)
+    #     current_point = 0, 0
+
+    surface.context.move_to(0, 0)
+    surface.bcontext.move_to(0, 0)
+    current_point = 0, 0
     hasClosed = True
     while string:
         string = string.strip()
