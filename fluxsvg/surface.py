@@ -96,6 +96,10 @@ TAGS = {
     'use': use,
 }
 
+NON_FILLABLE_TAGS = [
+    'line',
+]
+
 PATH_TAGS = frozenset((
     'circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect'))
 
@@ -627,7 +631,7 @@ class Surface(object):
             self.context.save()
             self.bcontext.save()
             fill_name = node.get('fill', 'black')
-            if fill_name == 'none' or fill_name == '#FFF' or fill_name == '#FFFFFF':
+            if fill_name == 'none' or fill_name == '#FFF' or fill_name == '#FFFFFF' or node.tag in NON_FILLABLE_TAGS:
                 fill_opacity = 0
             paint_source, paint_color = paint(fill_name)
             fill_paint_color = paint_color
