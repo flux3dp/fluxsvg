@@ -192,6 +192,8 @@ class Surface(object):
         kwargs['bytestring'] = bytestring
         tree = Tree(**kwargs)
         output = write_to or io.BytesIO()
+        if kwargs.pop('enable_clip', False):
+            tree['clip'] = 'rect(0, 0, 0, 0)'
         instance = cls(
             tree, [output, io.BytesIO(), None], dpi, None, parent_width, parent_height, scale, mode="fluxclient-parse", loop_compensation=loop_compensation)
         instance.finish()

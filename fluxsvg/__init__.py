@@ -50,10 +50,8 @@ for _output_format, _surface_type in SURFACES.items():
             'the format for this class', _output_format)
     setattr(sys.modules[__name__], _name, _function)
 
-def parse(bytestring=None, loop_compensation=0):
-    kwargs = {
-        "loop_compensation": loop_compensation
-    }
+def parse(bytestring=None, loop_compensation=0, **kwargs):
+    kwargs['loop_compensation'] = loop_compensation
     return SURFACES["SVG"].convert(bytestring, **kwargs).get_array()
 
 def divide(bytestring=None, params=None, dpi=72, loop_compensation=0):
