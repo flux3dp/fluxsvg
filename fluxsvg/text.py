@@ -31,11 +31,19 @@ from .url import parse_url
 def path_length(path):
     """Get the length of ``path``."""
     total_length = 0
+    last_move_to_point = (0, 0)
     for item in path:
         if item[0] == cairo.PATH_MOVE_TO:
             old_point = item[1]
+            last_move_to_point = item[1]
         elif item[0] == cairo.PATH_LINE_TO:
             new_point = item[1]
+            length = distance(
+                old_point[0], old_point[1], new_point[0], new_point[1])
+            total_length += length
+            old_point = new_point
+        elif item[0] == cairo.PATH_CLOSE_PATH:
+            new_point = last_move_to_point
             length = distance(
                 old_point[0], old_point[1], new_point[0], new_point[1])
             total_length += length
@@ -46,11 +54,27 @@ def path_length(path):
 def point_following_path(path, width):
     """Get the point at ``width`` distance on ``path``."""
     total_length = 0
+    last_move_to_point = (0, 0)
     for item in path:
         if item[0] == cairo.PATH_MOVE_TO:
             old_point = item[1]
+            last_move_to_point = item[1]
         elif item[0] == cairo.PATH_LINE_TO:
             new_point = item[1]
+            length = distance(
+                old_point[0], old_point[1], new_point[0], new_point[1])
+            total_length += length
+            if total_length < width:
+                old_point = new_point
+            else:
+                length -= total_length - width
+                angle = point_angle(
+                    old_point[0], old_point[1], new_point[0], new_point[1])
+                x = cos(angle) * length + old_point[0]
+                y = sin(angle) * length + old_point[1]
+                return x, y
+        elif item[0] == cairo.PATH_CLOSE_PATH:
+            new_point = last_move_to_point
             length = distance(
                 old_point[0], old_point[1], new_point[0], new_point[1])
             total_length += length
@@ -85,14 +109,15 @@ def text(surface, node):
 
     text_path_href = parse_url(
         node.get('{http://www.w3.org/1999/xlink}href', '') or
+        node.get('href', '') or
         node.parent.get('{http://www.w3.org/1999/xlink}href', ''))
     if text_path_href.fragment:
         text_path = surface.paths.get(text_path_href.fragment)
     else:
         text_path = None
     letter_spacing = size(surface, node.get('letter-spacing'))
-    x_bearing, y_bearing, width, height = (
-        surface.context.text_extents(node.text)[:4])
+    x_bearing, y_bearing, width, height, x_advance = (
+        surface.context.text_extents(node.text)[:5])
 
     x, y, dx, dy, rotate = [], [], [], [], [0]
     if 'x' in node:
@@ -112,6 +137,11 @@ def text(surface, node):
                   for i in normalize(node['rotate']).strip().split(' ')]
     last_r = rotate[-1]
     letters_positions = zip_letters(x, y, dx, dy, rotate, node.text)
+    # print(x, y, dx, dy, rotate)
+
+    if len(node.text) > 1:
+        last_char_extents = surface.context.text_extents(node.text[-1])
+        width = x_advance - (last_char_extents[4] - last_char_extents[2])
 
     text_anchor = node.get('text-anchor')
     if text_anchor == 'middle':
@@ -164,8 +194,8 @@ def text(surface, node):
         surface.context.new_path()
         length = path_length(cairo_path) + x_bearing
         start_offset = size(surface, node.get('startOffset', 0), length)
-        surface.text_path_width += start_offset - x_align
-        bounding_box = extend_bounding_box(bounding_box, ((start_offset, 0),))
+        surface.text_path_width = start_offset - x_align
+        bounding_box = extend_bounding_box(bounding_box, ((start_offset - x_align, 0),))
 
     is_first_char = True
     if node.text:
@@ -179,11 +209,12 @@ def text(surface, node):
             text_extents = surface.context.text_extents(letter)
             extents = text_extents[4]
             if text_path:
+                glyph_width = text_extents[2]
                 start = surface.text_path_width + surface.cursor_d_position[0]
                 start_point = point_following_path(cairo_path, start)
-                middle = start + extents / 2
+                middle = start + glyph_width / 2
                 middle_point = point_following_path(cairo_path, middle)
-                end = start + extents
+                end = start + glyph_width
                 end_point = point_following_path(cairo_path, end)
                 surface.text_path_width += extents + letter_spacing
                 if not all((start_point, middle_point, end_point)):
@@ -193,7 +224,7 @@ def text(surface, node):
                 surface.context.save()
                 surface.context.translate(*start_point)
                 surface.context.rotate(point_angle(*(start_point + end_point)))
-                surface.context.translate(0, surface.cursor_d_position[1])
+                surface.context.translate(0, surface.cursor_d_position[1] + y_align)
                 surface.context.move_to(0, 0)
                 bounding_box = extend_bounding_box(
                     bounding_box, ((end_point[0], text_extents[3]),))
