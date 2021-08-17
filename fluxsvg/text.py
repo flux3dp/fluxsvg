@@ -171,12 +171,12 @@ def text(surface, node):
               alignment_baseline == 'middle'):
             # TODO: This is wrong, Cairo gives no reasonable access to x-height
             # information, so we use font top-to-bottom
-            y_align = (ascent + descent) / 2.0 - descent
+            y_align = ascent / 2.0 - descent
         elif (alignment_baseline == 'text-before-edge' or
               alignment_baseline == 'before_edge' or
               alignment_baseline == 'top' or
               alignment_baseline == 'text-top'):
-            y_align = ascent
+            y_align = ascent - descent
         elif (alignment_baseline == 'text-after-edge' or
               alignment_baseline == 'after_edge' or
               alignment_baseline == 'bottom' or
