@@ -217,8 +217,10 @@ def text(surface, node):
                 end = start + glyph_width
                 end_point = point_following_path(cairo_path, end)
                 surface.text_path_width += extents + letter_spacing
-                if not all((start_point, middle_point, end_point)):
+                if not all((start_point, middle_point)):
                     continue
+                if not end_point:
+                    end_point = (2 * middle_point[0] - start_point[0], 2 * middle_point[1] - start_point[1])
                 if not 0 <= middle <= length:
                     continue
                 surface.context.save()
