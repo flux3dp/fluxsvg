@@ -214,18 +214,26 @@ def text(surface, node):
                 start_point = point_following_path(cairo_path, start)
                 middle = start + glyph_width / 2
                 middle_point = point_following_path(cairo_path, middle)
+                middle_2 = start + 0.501 * glyph_width
+                middle_point_2 = point_following_path(cairo_path, middle_2)
                 end = start + glyph_width
                 end_point = point_following_path(cairo_path, end)
                 surface.text_path_width += extents + letter_spacing
-                if not all((start_point, middle_point)):
+                if not all((start_point, middle_point, middle_point_2)):
                     continue
                 if not end_point:
                     end_point = (2 * middle_point[0] - start_point[0], 2 * middle_point[1] - start_point[1])
                 if not 0 <= middle <= length:
                     continue
                 surface.context.save()
-                surface.context.translate(*start_point)
-                surface.context.rotate(point_angle(*(start_point + end_point)))
+                # draw at middle at first
+                surface.context.translate(*middle_point)
+                # calculate rotation angle by 2 points near middle
+                angle = point_angle(*(middle_point + middle_point_2))
+                # rotate along middle
+                surface.context.rotate(angle)
+                # move back to start
+                surface.context.translate(-glyph_width / 2, 0)
                 surface.context.translate(0, surface.cursor_d_position[1] + y_align)
                 surface.context.move_to(0, 0)
                 bounding_box = extend_bounding_box(
