@@ -134,6 +134,8 @@ def draw_markers(surface, node):
 
 def path(surface, node):
     """Draw a path ``node``."""
+    if 'id' in node:
+        surface.paths[node['id']] = node
     string = node.get('d', '')
 
     node.vertices = []
@@ -224,7 +226,7 @@ def path(surface, node):
             ye = 0
 
             # Update the x radius if it is too small
-            rx = max(rx, xe / 2)
+            rx = max(abs(rx), xe / 2)
 
             # Find one circle centre
             xc = xe / 2
