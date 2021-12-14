@@ -98,14 +98,6 @@ def image(surface, node):
     scale_x, scale_y, translate_x, translate_y = preserve_ratio(
         surface, node)
 
-    # Clip image region (if necessary)
-    if not (translate_x == 0 and
-            translate_y == 0 and
-            width == scale_x * node.image_width and
-            height == scale_y * node.image_height):
-        surface.context.rectangle(x, y, width, height)
-        surface.context.clip()
-
     # Paint raster image
     surface.context.save()
     surface.context.translate(x, y)
@@ -135,3 +127,11 @@ def image(surface, node):
     print("Calculated max: " + str((surface.bitmap_max_x, surface.bitmap_max_y)))
     surface.bitmap_available = True
     surface.context.restore()
+    
+    # Clip image region (if necessary)
+    if not (translate_x == 0 and
+            translate_y == 0 and
+            width == scale_x * node.image_width and
+            height == scale_y * node.image_height):
+        surface.context.rectangle(x, y, width, height)
+        surface.context.clip()
