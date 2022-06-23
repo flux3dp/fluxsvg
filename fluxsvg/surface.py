@@ -107,31 +107,33 @@ INVISIBLE_TAGS = frozenset((
     'clipPath', 'filter', 'linearGradient', 'marker', 'mask', 'pattern',
     'radialGradient', 'symbol'))
 
+
 def create_function(name):
- 
-    def y(self, *args, **kwargs): 
+
+    def y(self, *args, **kwargs):
         name = sys._getframe().f_code.co_name
         if not self.bitmap_context is None:
             getattr(self.bitmap_context, name)(*args, **kwargs)
         getattr(self.fill_context, name)(*args, **kwargs)
         return getattr(self.path_context, name)(*args, **kwargs)
- 
+
     # This code here is Python verison depended ( works on Py 3.5 - 3.6 )
-    y_code = types.CodeType(y.__code__.co_argcount, \
-                y.__code__.co_kwonlyargcount, \
-                y.__code__.co_nlocals, \
-                y.__code__.co_stacksize, \
-                y.__code__.co_flags, \
-                y.__code__.co_code, \
-                y.__code__.co_consts, \
-                y.__code__.co_names, \
-                y.__code__.co_varnames, \
-                y.__code__.co_filename, \
-                name, \
-                y.__code__.co_firstlineno, \
-                y.__code__.co_lnotab)
+    y_code = types.CodeType(y.__code__.co_argcount,
+                            y.__code__.co_kwonlyargcount,
+                            y.__code__.co_nlocals,
+                            y.__code__.co_stacksize,
+                            y.__code__.co_flags,
+                            y.__code__.co_code,
+                            y.__code__.co_consts,
+                            y.__code__.co_names,
+                            y.__code__.co_varnames,
+                            y.__code__.co_filename,
+                            name,
+                            y.__code__.co_firstlineno,
+                            y.__code__.co_lnotab)
     # print("Cloning %s" % name, file=sys.stderr)
     return types.FunctionType(y_code, y.__globals__, name)
+
 
 class SuperContext():
     def __init__(self, cairo_path, cairo_bitmap, cairo_fill):
@@ -149,6 +151,7 @@ class SuperContext():
             setattr(SuperContext, method, create_function(method))
             pass
 
+
 class Surface(object):
     """Abstract base class for CairoSVG surfaces.
 
@@ -162,7 +165,6 @@ class Surface(object):
 
     # Subclasses must either define this or override _create_surface()
     surface_class = None
-
 
     @classmethod
     def convert(cls, bytestring=None, **kwargs):
@@ -209,23 +211,24 @@ class Surface(object):
         """Divide SVG into layers by colors and bitmap"""
         parent_width = None
         parent_height = None
-        scale = params.get('scale', 254 / 72) # Scaling from inch to pixel
+        scale = params.get('scale', 254 / 72)  # Scaling from inch to pixel
         kwargs = {}
         kwargs['bytestring'] = bytestring
         tree = Tree(**kwargs)
-        # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg 
+        # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg
         output = [io.BytesIO(), io.BytesIO(), io.BytesIO()]
-        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale, mode="beamstudio", loop_compensation=loop_compensation)
+        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale,
+                       mode="beamstudio", loop_compensation=loop_compensation)
         instance.finish()
 
         if not instance.bitmap_available:
             # Remove bitmap result if no bitmap are drawn
             output[1] = None
 
-        result = { 
-            'strokes': output[0], 
-            'bitmap': output[1], 
-            'colors': output[2], 
+        result = {
+            'strokes': output[0],
+            'bitmap': output[1],
+            'colors': output[2],
             'bitmap_offset': (instance.bitmap_min_x, instance.bitmap_min_y)
         }
         return result
@@ -235,21 +238,22 @@ class Surface(object):
         """Divide SVG into layers by colors and bitmap"""
         parent_width = None
         parent_height = None
-        scale = params.get('scale', 254 / 72) # Scaling from inch to pixel
+        scale = params.get('scale', 254 / 72)  # Scaling from inch to pixel
         kwargs = {}
         kwargs['bytestring'] = bytestring
         tree = Tree(**kwargs)
-        # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg 
+        # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg
         output = {'nolayer': io.BytesIO(), 'bitmap': io.BytesIO()}
-        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale, mode="beamstudio-by-layer", loop_compensation=loop_compensation)
+        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale,
+                       mode="beamstudio-by-layer", loop_compensation=loop_compensation)
         instance.finish()
 
         if not instance.bitmap_available:
             # Remove bitmap result if no bitmap are drawn
             output['bitmap'] = None
-        output ['bitmap_offset'] = (instance.bitmap_min_x, instance.bitmap_min_y)
+        output['bitmap_offset'] = (instance.bitmap_min_x, instance.bitmap_min_y)
         return output
-    
+
     @classmethod
     def divide_path_and_fill(cls, bytestring=None, dpi=72, loop_compensation=0):
         """Divide SVG into layers by colors and path"""
@@ -259,12 +263,12 @@ class Surface(object):
         kwargs = {}
         kwargs['bytestring'] = bytestring
         tree = Tree(**kwargs)
-        # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg 
+        # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg
         output = [io.BytesIO(), None, io.BytesIO()]
-        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale, mode="fluxclient-divide", loop_compensation=loop_compensation)
+        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale,
+                       mode="fluxclient-divide", loop_compensation=loop_compensation)
         instance.finish()
 
-        
         return (output[0], output[2], instance.fill_available)
 
     def __init__(self, tree, outputs, dpi, parent_surface=None,
@@ -318,7 +322,7 @@ class Surface(object):
         self.ref_set = set()
         width, height, viewbox = node_format(self, tree)
         width = width or (6000 / scale)
-        height = height or (3750 /scale)
+        height = height or (3750 / scale)
         viewbox = viewbox or (0, 0, width, height)
 
         print("Cairo start: " + str(mode), file=sys.stderr)
@@ -330,24 +334,27 @@ class Surface(object):
         # Actual surface dimensions: may be rounded on raster surfaces types
         if self.is_by_layer:
             self.cairo, self.width, self.height = self._create_surface(outputs['nolayer'],
-                width * self.device_units_per_user_units,
-                height * self.device_units_per_user_units)
+                                                                       width * self.device_units_per_user_units,
+                                                                       height * self.device_units_per_user_units)
         else:
             self.cairo, self.width, self.height = self._create_surface(outputs[0],
-                width * self.device_units_per_user_units,
-                height * self.device_units_per_user_units)
+                                                                       width * self.device_units_per_user_units,
+                                                                       height * self.device_units_per_user_units)
 
         if self.mode.startswith("beamstudio"):
-            self.cairo_bitmap = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
+            self.cairo_bitmap = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(
+                width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         else:
             self.cairo_bitmap = None
         if self.mode.startswith("fluxclient"):
-            self.cairo_fill = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
+            self.cairo_fill = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(
+                width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         else:
             if self.is_by_layer:
                 self.cairo_fill = self.cairo
             else:
-                self.cairo_fill = cairo.SVGSurface(outputs[2], int(width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
+                self.cairo_fill = cairo.SVGSurface(outputs[2], int(
+                    width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         self.context = SuperContext(self.cairo, self.cairo_bitmap, self.cairo_fill)
         self.bcontext = beamify.Context()
         self.bcontext.set_compensation_length(loop_compensation)
@@ -388,12 +395,12 @@ class Surface(object):
             return
         self.outputs[layer_name] = io.BytesIO()
         self.layer_surface, _, _ = self._create_surface(self.outputs[layer_name],
-            self.root_width * self.device_units_per_user_units,
-            self.root_height * self.device_units_per_user_units)
-        layer_context = SuperContext(self.layer_surface, self.cairo_bitmap ,self.layer_surface)
+                                                        self.root_width * self.device_units_per_user_units,
+                                                        self.root_height * self.device_units_per_user_units)
+        layer_context = SuperContext(self.layer_surface, self.cairo_bitmap, self.layer_surface)
         self.context = layer_context
         return layer_context
-    
+
     def end_layer_surface(self):
         self.layer_surface.finish()
         return
@@ -443,7 +450,8 @@ class Surface(object):
             bitmapIO = self.outputs['bitmap'] if self.is_by_layer else self.outputs[1]
             if not self.bitmap_min_x is None:
                 image_data = self.cairo_bitmap.write_to_png()
-                image = Image.open(io.BytesIO(image_data)).crop((self.bitmap_min_x, self.bitmap_min_y, self.bitmap_max_x, self.bitmap_max_y))
+                image = Image.open(io.BytesIO(image_data))
+                image = image.crop((self.bitmap_min_x, self.bitmap_min_y, self.bitmap_max_x, self.bitmap_max_y))
                 image.save(bitmapIO, format="PNG")
             else:
                 self.cairo_bitmap.write_to_png(bitmapIO)
@@ -478,7 +486,7 @@ class Surface(object):
         # Find and prepare opacity, masks and filters
         mask = parse_url(node.get('mask')).fragment
         filter_ = parse_url(node.get('filter')).fragment
-        try: 
+        try:
             opacity = float(node.get('opacity', 1))
         except:
             opacity = 1
@@ -488,13 +496,13 @@ class Surface(object):
 
         if filter_ or mask or (opacity < 1 and node.children):
             self.context.push_group()
-            #self.bcontext.push_group()
+            # self.bcontext.push_group()
 
         # Move to (node.x, node.y)
         self.context.move_to(
             size(self, node.get('x'), 'x'),
             size(self, node.get('y'), 'y'))
-        
+
         self.bcontext.move_to(
             size(self, node.get('x'), 'x'),
             size(self, node.get('y'), 'y'))
@@ -578,7 +586,7 @@ class Surface(object):
                 self.context.set_fill_rule(cairo.FILL_RULE_WINDING)
                 self.bcontext.clip()
                 # self.bcontext.set_fill_rule(cairo.FILL_RULE_WINDING)
-                
+
         # print("Parsing ", node.tag, node, file=sys.stderr)
         # Only draw known tags
         if node.tag in TAGS:
@@ -588,9 +596,9 @@ class Surface(object):
                 # Error in point parsing, do nothing
                 pass
             except Exception:
-                logger.error('When drawing {}, {}, Exception Occured:\n{}'.format(node.tag, node, traceback.format_exc()))
+                logger.error('When drawing {}, {}, Exception Occured:\n{}'.format(
+                    node.tag, node, traceback.format_exc()))
                 logger.error('Ignore this node.')
-
 
         # Get stroke and fill opacity
         stroke_opacity = node.get('stroke-opacity', 1)
@@ -663,7 +671,7 @@ class Surface(object):
 
             if not gradient_or_pattern(self, node, paint_source):
                 self.context.set_source_rgba(*color(paint_color, stroke_opacity))
-            
+
             if self.mode.startswith("fluxclient"):
                 # if the element is fill only, no strokes:
                 if color(paint_color, stroke_opacity)[3] == 0:
@@ -682,7 +690,7 @@ class Surface(object):
                     self.context.path_context.set_line_width(line_width)
                 else:
                     self.context.path_context.set_line_width(0)
-                
+
                 # write path to main context, and don't writes to fill_context
                 self.context.fill_context.set_line_width(0)
                 self.context.path_context.stroke()
@@ -695,7 +703,7 @@ class Surface(object):
                 if self.is_by_layer:
                     self.context.set_line_width(1)
                 if not fill_paint_color == paint_color:
-                    #do not stroke fill context
+                    # do not stroke fill context
                     self.context.path_context.stroke()
                     self.context.fill_context.set_line_width(0)
                     self.context.fill_context.stroke()
@@ -723,7 +731,7 @@ class Surface(object):
                     if layer_name in self.outputs:
                         i = 2
                         while '{}_{}'.format(layer_name, i) in self.outputs:
-                            i += 1 
+                            i += 1
                 if layer_name and layer_name != 'nolayer':
                     logger.info('Create new surface & context for {}'.format(layer_name))
                     root_context = self.context
