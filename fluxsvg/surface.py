@@ -442,6 +442,12 @@ class Surface(object):
                 bmatrix = beamify.Matrix()
                 bmatrix.scale(scale, scale)
                 apply_matrix_transform(self, matrix)
+    
+    def set_dashes(self, dashes, offset):
+        dashes = [dash * self.root_scale for dash in dashes]
+        offset *= self.root_scale
+        self.context.set_dash(dashes, offset)
+        self.bcontext.set_dash(dashes, offset)
 
     def finish(self):
         """Read the surface content."""
@@ -527,8 +533,7 @@ class Surface(object):
             dashes = [size(self, dash) for dash in dash_array]
             if sum(dashes):
                 offset = size(self, node.get('stroke-dashoffset'))
-                self.context.set_dash(dashes, offset)
-                self.bcontext.set_dash(dashes, offset)
+                self.set_dashes(dashes, offset)
 
         miter_limit = float(node.get('stroke-miterlimit', 4))
         self.context.set_miter_limit(miter_limit)
