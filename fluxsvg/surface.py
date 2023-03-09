@@ -269,8 +269,9 @@ class Surface(object):
         instance = cls(tree, output, dpi, None, parent_width, parent_height, scale,
                        mode="fluxclient-divide", loop_compensation=loop_compensation)
         instance.finish()
+        fill_images = [output[2]] if instance.fill_available else []
 
-        return (output[0], output[2], instance.fill_available)
+        return (output[0], fill_images)
 
     def __init__(self, tree, outputs, dpi, parent_surface=None,
                  parent_width=None, parent_height=None, scale=1, mode="default", loop_compensation=0):
