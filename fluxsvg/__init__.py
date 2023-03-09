@@ -19,7 +19,7 @@ CairoSVG - A simple SVG converter based on Cairo.
 
 """
 
-__version__ = '2.5.6'  # noqa (version is used by relative imports)
+__version__ = '2.5.7'  # noqa (version is used by relative imports)
 
 
 import os
@@ -34,6 +34,7 @@ SURFACES = {
     'PNG': surface.PNGSurface,
     'PS': surface.PSSurface,
     'SVG': surface.SVGSurface,
+    'IMAGE': surface.ImageSurface,
 }
 
 
@@ -52,16 +53,19 @@ for _output_format, _surface_type in SURFACES.items():
 
 def parse(bytestring=None, loop_compensation=0, **kwargs):
     kwargs['loop_compensation'] = loop_compensation
-    return SURFACES["SVG"].convert(bytestring, **kwargs).get_array()
+    return SURFACES['SVG'].convert(bytestring, **kwargs).get_array()
 
 def divide(bytestring=None, params=None, dpi=72, loop_compensation=0):
-    return SURFACES["SVG"].divide(bytestring, params=params, dpi=dpi, loop_compensation=loop_compensation)
+    return SURFACES['SVG'].divide(bytestring, params=params, dpi=dpi, loop_compensation=loop_compensation)
 
 def divide_by_layer(bytestring=None, params=None, dpi=72, loop_compensation=0):
-    return SURFACES["SVG"].divide_by_layer(bytestring, params=params, dpi=dpi, loop_compensation=loop_compensation)
+    return SURFACES['SVG'].divide_by_layer(bytestring, params=params, dpi=dpi, loop_compensation=loop_compensation)
 
 def divide_path_and_fill(bytestring=None, dpi=72, loop_compensation=0):
-    return SURFACES["SVG"].divide_path_and_fill(bytestring, dpi=dpi, loop_compensation=loop_compensation)
+    return SURFACES['SVG'].divide_path_and_fill(bytestring, dpi=dpi, loop_compensation=loop_compensation)
+
+def divide_to_image(bytestring=None, dpi=72, loop_compensation=0):
+    return SURFACES['IMAGE'].divide_path_and_fill(bytestring, dpi=dpi, loop_compensation=loop_compensation)
 
 def main():
     """Entry-point of the executable."""
