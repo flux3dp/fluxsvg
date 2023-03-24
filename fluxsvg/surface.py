@@ -194,8 +194,9 @@ class Surface(object):
         kwargs['bytestring'] = bytestring
         tree = Tree(**kwargs)
         output = write_to or io.BytesIO()
-        if kwargs.pop('enable_clip', False):
-            tree['clip'] = 'rect(0, 0, 0, 0)'
+        clip_rect = kwargs.pop('clip_rect', None)
+        if clip_rect:
+            tree['clip'] = 'rect({})'.format(','.join(map(str, clip_rect)))
         instance = cls(
             tree, [output, io.BytesIO(), None], dpi, None, parent_width, parent_height, scale, mode="fluxclient-parse", loop_compensation=loop_compensation)
         instance.finish()
@@ -341,7 +342,7 @@ class Surface(object):
                                                                        width * self.device_units_per_user_units,
                                                                        height * self.device_units_per_user_units)
 
-        if self.mode.startswith("beamstudio"):
+        if self.mode.startswith('beamstudio'):
             self.cairo_bitmap = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(
                 width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         else:
