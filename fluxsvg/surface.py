@@ -243,7 +243,6 @@ class Surface(object):
         kwargs = {}
         kwargs['bytestring'] = bytestring
         tree = Tree(**kwargs)
-        # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg
         output = {'nolayer': io.BytesIO(), 'bitmap': io.BytesIO()}
         instance = cls(tree, output, dpi, None, parent_width, parent_height, scale,
                        mode="beamstudio-by-layer", loop_compensation=loop_compensation)
@@ -264,13 +263,13 @@ class Surface(object):
         kwargs = {}
         kwargs['bytestring'] = bytestring
         tree = Tree(**kwargs)
-        # The first one should be svg for strokes and fills, second one should be svg for bitmap and gradient, and the third one should be colored bitmap svg
         output = [io.BytesIO(), None, io.BytesIO()]
         instance = cls(tree, output, dpi, None, parent_width, parent_height, scale,
                        mode="fluxclient-divide", loop_compensation=loop_compensation)
         instance.finish()
+        fill_images = [output[2]] if instance.fill_available else []
 
-        return (output[0], output[2], instance.fill_available)
+        return (output[0], fill_images)
 
     def __init__(self, tree, outputs, dpi, parent_surface=None,
                  parent_width=None, parent_height=None, scale=1, mode="default", loop_compensation=0):
@@ -326,28 +325,24 @@ class Surface(object):
         height = height or (3750 / scale)
         viewbox = viewbox or (0, 0, width, height)
 
-        print("Cairo start: " + str(mode), file=sys.stderr)
-        print("Cairo Size: " + str(width) + " " + str(height), file=sys.stderr)
-        print("Cairo loop compensation: " + str(loop_compensation), file=sys.stderr)
+        print('Cairo start: ' + str(mode), file=sys.stderr)
+        print('Cairo Size: ' + str(width) + ' ' + str(height), file=sys.stderr)
+        print('Cairo loop compensation: ' + str(loop_compensation), file=sys.stderr)
         width *= scale
         height *= scale
         self.root_width, self.root_height, self.root_scale, self.root_viewbox = width, height, scale, viewbox
         # Actual surface dimensions: may be rounded on raster surfaces types
-        if self.is_by_layer:
-            self.cairo, self.width, self.height = self._create_surface(outputs['nolayer'],
-                                                                       width * self.device_units_per_user_units,
-                                                                       height * self.device_units_per_user_units)
-        else:
-            self.cairo, self.width, self.height = self._create_surface(outputs[0],
-                                                                       width * self.device_units_per_user_units,
-                                                                       height * self.device_units_per_user_units)
+        self.cairo, self.width, self.height = self._create_surface(self.output,
+                                                                   width * self.device_units_per_user_units,
+                                                                   height * self.device_units_per_user_units)
 
         if self.mode.startswith('beamstudio'):
             self.cairo_bitmap = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(
                 width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         else:
             self.cairo_bitmap = None
-        if self.mode.startswith("fluxclient"):
+
+        if self.mode.startswith('fluxclient'):
             self.cairo_fill = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(
                 width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         else:
@@ -360,7 +355,7 @@ class Surface(object):
         self.bcontext = beamify.Context()
         self.bcontext.set_compensation_length(loop_compensation)
         # We must scale the context as the surface size is using physical units
-        print("The units scale is %f" % self.device_units_per_user_units, file=sys.stderr)
+        print('The units scale is %f' % self.device_units_per_user_units, file=sys.stderr)
         self.context.scale(self.device_units_per_user_units, self.device_units_per_user_units)
         # self.bitmap_context.scale(self.device_units_per_user_units, self.device_units_per_user_units)
         # self.bcontext.scale(self.device_units_per_user_units, self.device_units_per_user_units)
@@ -453,9 +448,9 @@ class Surface(object):
     def finish(self):
         """Read the surface content."""
         self.cairo.finish()
-        if not self.cairo_bitmap is None:
+        if self.cairo_bitmap is not None:
             bitmapIO = self.outputs['bitmap'] if self.is_by_layer else self.outputs[1]
-            if not self.bitmap_min_x is None:
+            if self.bitmap_min_x is not None:
                 image_data = self.cairo_bitmap.write_to_png()
                 image = Image.open(io.BytesIO(image_data))
                 image = image.crop((self.bitmap_min_x, self.bitmap_min_y, self.bitmap_max_x, self.bitmap_max_y))
@@ -813,3 +808,33 @@ class SVGSurface(Surface):
 
     """
     surface_class = cairo.SVGSurface
+
+
+class ImageSurface(Surface):
+    # Surface to generate image for printing, Could be write in PNGSurface if it is not used by other functions
+    surface_class = cairo.ImageSurface
+
+    def _create_surface(self, output, width, height):
+        width, height= int(width), int(height)
+        cairo_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
+        return cairo_surface, width, height
+    
+    @classmethod
+    def divide_path_and_fill(cls, bytestring=None, dpi=72, loop_compensation=0):
+        kwargs = {}
+        kwargs['bytestring'] = bytestring
+        tree = Tree(**kwargs)
+        output = [None, None, None]
+        instance = cls(tree, output, dpi, None, parent_width=None, parent_height=None, scale=1,
+                       mode='fluxclient-divide', loop_compensation=loop_compensation)
+        data = instance.finish()
+        return None, data
+    
+    def finish(self):
+        outputs = [io.BytesIO()]
+        self.cairo.write_to_png(outputs[0])
+        if self.fill_available:
+            output = io.BytesIO()
+            self.cairo_fill.write_to_png(output)
+            outputs.append(output)
+        return outputs
