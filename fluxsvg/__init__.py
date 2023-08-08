@@ -19,7 +19,8 @@ CairoSVG - A simple SVG converter based on Cairo.
 
 """
 
-__version__ = '2.6.0'  # noqa (version is used by relative imports)
+# Add generate_layer_preview
+__version__ = '2.7.0'  # noqa (version is used by relative imports)
 
 
 import os
@@ -66,6 +67,9 @@ def divide_path_and_fill(bytestring=None, dpi=72, loop_compensation=0):
 
 def divide_to_image(bytestring=None, dpi=72, loop_compensation=0):
     return SURFACES['IMAGE'].divide_path_and_fill(bytestring, dpi=dpi, loop_compensation=loop_compensation)
+
+def generate_layer_preview(bytestring=None, dpi=72, layer_color='#333333'):
+    return SURFACES['IMAGE'].generate_layer_preview(bytestring, dpi=dpi, layer_color=layer_color)
 
 def main():
     """Entry-point of the executable."""

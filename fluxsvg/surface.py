@@ -46,7 +46,7 @@ from .text import text
 from .url import parse_url
 import sys
 import beamify.context as beamify
-from PIL import Image
+from PIL import Image, ImageColor, ImageOps
 
 Image.MAX_IMAGE_PIXELS = 1e10
 
@@ -829,6 +829,69 @@ class ImageSurface(Surface):
                        mode='fluxclient-divide', loop_compensation=loop_compensation)
         data = instance.finish()
         return None, data
+    
+    @classmethod
+    def generate_layer_preview(cls, bytestring=None, dpi=72, layer_color='#333333'):
+        kwargs = {}
+        kwargs['bytestring'] = bytestring
+        tree = Tree(**kwargs)
+        output = [None, None, None]
+        instance = cls(tree, output, dpi, None, parent_width=None, parent_height=None, scale=1,
+                       mode='fluxclient-layer-preview', loop_compensation=0)
+        return instance.layer_preview_finish(layer_color)
+
+    # ref: https://stackoverflow.com/questions/29332424/changing-colour-of-an-image
+    # adjust a little bit to match the color in beam studio
+    def tint_image(self, img, color='#ffffff'):
+        tr, tg, tb = ImageColor.getrgb(color)
+        # create look-up tables to map luminosity to adjusted tint
+        # (using floating-point math only to compute table)
+        luts = (tuple(map(lambda lr: lr + tr, range(256))) +
+                tuple(map(lambda lg: lg + tg, range(256))) +
+                tuple(map(lambda lb: lb + tb, range(256))))
+        l = ImageOps.grayscale(img)  # 8-bit luminosity version of whole image
+        if Image.getmodebands(img.mode) < 4:
+            merge_args = (img.mode, (l, l, l))  # for RGB verion of grayscale
+        else:  # include copy of src image's alpha layer
+            a = Image.new('L', img.size)
+            a.putdata(img.getdata(3))
+            merge_args = (img.mode, (l, l, l, a))  # for RGBA verion of grayscale
+            luts += tuple(range(256))  # for 1:1 mapping of copied alpha values
+        return Image.merge(*merge_args).point(luts)
+
+    def layer_preview_finish(self, layer_color):
+        path_data = io.BytesIO()
+        self.cairo.write_to_png(path_data)
+        base_image = Image.open(path_data)
+        if self.fill_available:
+            fill_data = io.BytesIO()
+            self.cairo_fill.write_to_png(fill_data)
+            fill_image = Image.open(fill_data)
+            base_image = Image.alpha_composite(base_image, fill_image)
+        if self.cairo_bitmap is not None and self.bitmap_available:
+            bitmap_data = io.BytesIO()
+            if self.bitmap_min_x is not None:
+                image_data = self.cairo_bitmap.write_to_png()
+                bitmap_image = Image.open(io.BytesIO(image_data))
+                bitmap_image = bitmap_image.crop((self.bitmap_min_x, self.bitmap_min_y, self.bitmap_max_x, self.bitmap_max_y))
+                bitmap_image.save(bitmap_data, format='PNG')
+            else:
+                self.cairo_bitmap.write_to_png(bitmap_data)
+            bitmap_image = Image.open(bitmap_data)
+            bitmap_image = self.tint_image(bitmap_image, layer_color)
+            x = round(self.bitmap_min_x) if self.bitmap_min_x is not None else 0
+            y = round(self.bitmap_min_y) if self.bitmap_min_y is not None else 0
+            base_image.paste(bitmap_image, (x, y), bitmap_image)
+        width, height = base_image.size
+        MAX_WIDTH = 500
+        if width > MAX_WIDTH:
+            ratio = MAX_WIDTH / width
+            new_height = int(height * ratio)
+            base_image = base_image.resize((MAX_WIDTH, new_height), Image.LANCZOS)
+        output = io.BytesIO()
+        base_image.save(output, format='PNG')
+        return output
+
     
     def finish(self):
         outputs = [io.BytesIO()]
