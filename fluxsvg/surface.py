@@ -119,6 +119,7 @@ def create_function(name):
 
     # This code here is Python verison depended ( works on Py 3.5 - 3.6 )
     y_code = types.CodeType(y.__code__.co_argcount,
+                            y.__code__.co_posonlyargcount,
                             y.__code__.co_kwonlyargcount,
                             y.__code__.co_nlocals,
                             y.__code__.co_stacksize,
@@ -336,7 +337,7 @@ class Surface(object):
                                                                    width * self.device_units_per_user_units,
                                                                    height * self.device_units_per_user_units)
 
-        if self.mode.startswith('beamstudio'):
+        if self.mode.startswith('beamstudio') or self.mode == 'fluxclient-layer-preview':
             self.cairo_bitmap = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(
                 width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         else:
