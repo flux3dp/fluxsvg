@@ -117,21 +117,35 @@ def create_function(name):
         getattr(self.fill_context, name)(*args, **kwargs)
         return getattr(self.path_context, name)(*args, **kwargs)
 
-    # This code here is Python verison depended ( works on Py 3.5 - 3.6 )
-    y_code = types.CodeType(y.__code__.co_argcount,
-                            y.__code__.co_posonlyargcount,
-                            y.__code__.co_kwonlyargcount,
-                            y.__code__.co_nlocals,
-                            y.__code__.co_stacksize,
-                            y.__code__.co_flags,
-                            y.__code__.co_code,
-                            y.__code__.co_consts,
-                            y.__code__.co_names,
-                            y.__code__.co_varnames,
-                            y.__code__.co_filename,
-                            name,
-                            y.__code__.co_firstlineno,
-                            y.__code__.co_lnotab)
+    if hasattr(y.__code__, 'co_posonlyargcount'):
+        y_code = types.CodeType(y.__code__.co_argcount,
+                                y.__code__.co_posonlyargcount,
+                                y.__code__.co_kwonlyargcount,
+                                y.__code__.co_nlocals,
+                                y.__code__.co_stacksize,
+                                y.__code__.co_flags,
+                                y.__code__.co_code,
+                                y.__code__.co_consts,
+                                y.__code__.co_names,
+                                y.__code__.co_varnames,
+                                y.__code__.co_filename,
+                                name,
+                                y.__code__.co_firstlineno,
+                                y.__code__.co_lnotab)
+    else:
+        y_code = types.CodeType(y.__code__.co_argcount,
+                                y.__code__.co_kwonlyargcount,
+                                y.__code__.co_nlocals,
+                                y.__code__.co_stacksize,
+                                y.__code__.co_flags,
+                                y.__code__.co_code,
+                                y.__code__.co_consts,
+                                y.__code__.co_names,
+                                y.__code__.co_varnames,
+                                y.__code__.co_filename,
+                                name,
+                                y.__code__.co_firstlineno,
+                                y.__code__.co_lnotab)
     # print("Cloning %s" % name, file=sys.stderr)
     return types.FunctionType(y_code, y.__globals__, name)
 
