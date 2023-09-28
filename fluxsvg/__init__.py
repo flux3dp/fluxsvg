@@ -19,8 +19,8 @@ CairoSVG - A simple SVG converter based on Cairo.
 
 """
 
-# Add generate_layer_preview
-__version__ = '2.7.0'  # noqa (version is used by relative imports)
+# Fix generate_layer_preview bug
+__version__ = '2.7.1'  # noqa (version is used by relative imports)
 
 
 import os

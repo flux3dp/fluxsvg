@@ -896,6 +896,8 @@ class ImageSurface(Surface):
             bitmap_image = self.tint_image(bitmap_image, layer_color)
             x = round(self.bitmap_min_x) if self.bitmap_min_x is not None else 0
             y = round(self.bitmap_min_y) if self.bitmap_min_y is not None else 0
+            if bitmap_image.mode != 'RGBA':
+                bitmap_image = bitmap_image.convert('RGBA')
             base_image.paste(bitmap_image, (x, y), bitmap_image)
         width, height = base_image.size
         MAX_WIDTH = 500
