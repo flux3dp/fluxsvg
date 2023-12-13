@@ -879,9 +879,11 @@ class ImageSurface(Surface):
         self.cairo.write_to_png(path_data)
         base_image = Image.open(path_data)
         if self.fill_available:
+            base_image = base_image.convert('RGBA')
             fill_data = io.BytesIO()
             self.cairo_fill.write_to_png(fill_data)
             fill_image = Image.open(fill_data)
+            fill_image = fill_image.convert('RGBA')
             base_image = Image.alpha_composite(base_image, fill_image)
         if self.cairo_bitmap is not None and self.bitmap_available:
             bitmap_data = io.BytesIO()
