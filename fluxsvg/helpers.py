@@ -431,4 +431,9 @@ def get_layer_name(node):
         layer_name = node.get(INKSCAPE_NS + 'label', None)
     if layer_name is None:
         layer_name = node.get('id', None)
+    if layer_name is None:
+        if node.get('class', None) == 'layer':
+            if len(node.children) > 0 and node.children[0].tag:
+                if node.children[0].text:
+                    layer_name = node.children[0].text
     return layer_name
