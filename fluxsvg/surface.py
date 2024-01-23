@@ -672,7 +672,7 @@ class Surface(object):
             if not is_gradient_or_pattern and (color(paint_color, fill_opacity)[3] == 0 or fill_opacity == 0):
                 pass
             else:
-                if not node.tag in ['svg', 'clipPath']:
+                if node.tag not in ['svg', 'clipPath', 'image', 'filter']:
                     self.fill_available = True
                 node_filled = True
                 self.context.fill_context.fill_preserve()
@@ -878,11 +878,21 @@ class ImageSurface(Surface):
         path_data = io.BytesIO()
         self.cairo.write_to_png(path_data)
         base_image = Image.open(path_data)
+        width, height = base_image.size
+        MAX_WIDTH = 500
+        new_height = height
+        ratio = 1
+        if width > MAX_WIDTH:
+            ratio = MAX_WIDTH / width
+            new_height = int(height * ratio)
+            base_image = base_image.resize((MAX_WIDTH, new_height), Image.LANCZOS)
         if self.fill_available:
             base_image = base_image.convert('RGBA')
             fill_data = io.BytesIO()
             self.cairo_fill.write_to_png(fill_data)
             fill_image = Image.open(fill_data)
+            if width > MAX_WIDTH:
+                fill_image = fill_image.resize((MAX_WIDTH, new_height), Image.LANCZOS)
             fill_image = fill_image.convert('RGBA')
             base_image = Image.alpha_composite(base_image, fill_image)
         if self.cairo_bitmap is not None and self.bitmap_available:
@@ -895,20 +905,18 @@ class ImageSurface(Surface):
             else:
                 self.cairo_bitmap.write_to_png(bitmap_data)
             bitmap_image = Image.open(bitmap_data)
+            if ratio < 1:
+                bitmap_w, bitmap_h = bitmap_image.size
+                bitmap_image = bitmap_image.resize((int(bitmap_w * ratio), int(bitmap_h * ratio)), Image.LANCZOS)
             bitmap_image = self.tint_image(bitmap_image, layer_color)
-            x = round(self.bitmap_min_x) if self.bitmap_min_x is not None else 0
-            y = round(self.bitmap_min_y) if self.bitmap_min_y is not None else 0
+            x = round(ratio * self.bitmap_min_x) if self.bitmap_min_x is not None else 0
+            y = round(ratio * self.bitmap_min_y) if self.bitmap_min_y is not None else 0
             if bitmap_image.mode != 'RGBA':
                 bitmap_image = bitmap_image.convert('RGBA')
             base_image.paste(bitmap_image, (x, y), bitmap_image)
-        width, height = base_image.size
-        MAX_WIDTH = 500
-        if width > MAX_WIDTH:
-            ratio = MAX_WIDTH / width
-            new_height = int(height * ratio)
-            base_image = base_image.resize((MAX_WIDTH, new_height), Image.LANCZOS)
         output = io.BytesIO()
         base_image.save(output, format='PNG')
+        base_image.save('/Users/dean/Downloads/test-preveiw.png', format='PNG')
         return output
 
     
