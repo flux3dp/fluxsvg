@@ -724,7 +724,6 @@ class Surface(object):
                     self.context.fill_context.set_line_width(0)
                     self.context.fill_context.stroke()
                 else:
-                    self.context.path_context.stroke()
                     self.context.fill_context.stroke()
 
             self.context.restore()
