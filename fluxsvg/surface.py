@@ -915,7 +915,6 @@ class ImageSurface(Surface):
             base_image.paste(bitmap_image, (x, y), bitmap_image)
         output = io.BytesIO()
         base_image.save(output, format='PNG')
-        base_image.save('/Users/dean/Downloads/test-preveiw.png', format='PNG')
         return output
 
     
