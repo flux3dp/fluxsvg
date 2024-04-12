@@ -258,16 +258,21 @@ class Surface(object):
         kwargs = {}
         kwargs['bytestring'] = bytestring
         tree = Tree(**kwargs)
-        output = {'nolayer': io.BytesIO(), 'bitmap': io.BytesIO()}
-        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale,
+        tree_id = tree.get('id', None)
+        outputs = {'nolayer': io.BytesIO(), 'bitmap': io.BytesIO()}
+        instance = cls(tree, outputs, dpi, None, parent_width, parent_height, scale,
                        mode="beamstudio-by-layer", loop_compensation=loop_compensation)
         instance.finish()
+        if tree_id is not None:
+            outputs[tree_id] = outputs['nolayer']
+            del outputs['nolayer']
+
 
         if not instance.bitmap_available:
             # Remove bitmap result if no bitmap are drawn
-            output['bitmap'] = None
-        output['bitmap_offset'] = (instance.bitmap_min_x, instance.bitmap_min_y)
-        return output
+            outputs['bitmap'] = None
+        outputs['bitmap_offset'] = (instance.bitmap_min_x, instance.bitmap_min_y)
+        return outputs
 
     @classmethod
     def divide_path_and_fill(cls, bytestring=None, dpi=72, loop_compensation=0):
@@ -278,13 +283,13 @@ class Surface(object):
         kwargs = {}
         kwargs['bytestring'] = bytestring
         tree = Tree(**kwargs)
-        output = [io.BytesIO(), None, io.BytesIO()]
-        instance = cls(tree, output, dpi, None, parent_width, parent_height, scale,
+        outputs = [io.BytesIO(), None, io.BytesIO()]
+        instance = cls(tree, outputs, dpi, None, parent_width, parent_height, scale,
                        mode="fluxclient-divide", loop_compensation=loop_compensation)
         instance.finish()
-        fill_images = [output[2]] if instance.fill_available else []
+        fill_images = [outputs[2]] if instance.fill_available else []
 
-        return (output[0], fill_images)
+        return (outputs[0], fill_images)
 
     def __init__(self, tree, outputs, dpi, parent_surface=None,
                  parent_width=None, parent_height=None, scale=1, mode="default", loop_compensation=0):
