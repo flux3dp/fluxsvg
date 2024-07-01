@@ -937,7 +937,6 @@ class ImageSurface(Surface):
             if self.bitmap_min_x is not None:
                 image_data = self.cairo_bitmap.write_to_png()
                 bitmap_image = Image.open(io.BytesIO(image_data))
-                # bitmap_image.save('/Users/dean/Downloads/fluxsvg/calculate_image_finish-before-crop.png')
                 bitmap_image = bitmap_image.crop((self.bitmap_min_x, self.bitmap_min_y, self.bitmap_max_x, self.bitmap_max_y))
                 bitmap_image.save(bitmap_data, format='PNG')
                 bbox = {
