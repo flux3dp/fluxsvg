@@ -940,11 +940,17 @@ class ImageSurface(Surface):
                 # bitmap_image.save('/Users/dean/Downloads/fluxsvg/calculate_image_finish-before-crop.png')
                 bitmap_image = bitmap_image.crop((self.bitmap_min_x, self.bitmap_min_y, self.bitmap_max_x, self.bitmap_max_y))
                 bitmap_image.save(bitmap_data, format='PNG')
+                bbox = {
+                    'x': self.bitmap_min_x,
+                    'y': self.bitmap_min_y,
+                    'width': bitmap_image.width,
+                    'height': bitmap_image.height,
+                }
             else:
-                self.cairo_bitmap.write_to_png(bitmap_data)
-            bitmap_image = Image.open(bitmap_data)
-            # bitmap_image.save('/Users/dean/Downloads/fluxsvg/calculate_image_finish.png')
-            return { 'pil_image': bitmap_image, 'bbox': { 'x': self.bitmap_min_x, 'y': self.bitmap_min_y } }
+                bitmap_data = self.cairo_bitmap.write_to_png()
+                bitmap_image = Image.open(bitmap_data)
+                bbox = { 'x': 0, 'y': 0, 'width': bitmap_image.width, 'height': bitmap_image.height }
+            return { 'pil_image': bitmap_image, 'bbox': bbox }
         return None
 
 
