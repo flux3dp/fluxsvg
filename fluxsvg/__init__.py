@@ -71,6 +71,10 @@ def divide_to_image(bytestring=None, dpi=72, loop_compensation=0):
 def generate_layer_preview(bytestring=None, dpi=72, layer_color='#333333'):
     return SURFACES['IMAGE'].generate_layer_preview(bytestring, dpi=dpi, layer_color=layer_color)
 
+def calculate_image(bytestring=None, scale=1):
+    dpi = 72 / scale
+    return SURFACES['IMAGE'].calculate_image(bytestring, dpi=dpi)
+
 def main():
     """Entry-point of the executable."""
     # Get command-line options

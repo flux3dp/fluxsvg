@@ -345,9 +345,9 @@ class Surface(object):
         height = height or (3750 / scale)
         viewbox = viewbox or (0, 0, width, height)
 
-        print('Cairo start: ' + str(mode), file=sys.stderr)
-        print('Cairo Size: ' + str(width) + ' ' + str(height), file=sys.stderr)
-        print('Cairo loop compensation: ' + str(loop_compensation), file=sys.stderr)
+        logger.info('Cairo start: %s' % mode)
+        logger.info('Cairo Size: %d %d' % (width, height))
+        logger.info('Cairo loop compensation: %d' % loop_compensation)
         width *= scale
         height *= scale
         self.root_width, self.root_height, self.root_scale, self.root_viewbox = width, height, scale, viewbox
@@ -356,26 +356,27 @@ class Surface(object):
                                                                    width * self.device_units_per_user_units,
                                                                    height * self.device_units_per_user_units)
 
-        if self.mode.startswith('beamstudio') or self.mode == 'fluxclient-layer-preview':
+        if self.mode.startswith('beamstudio') or self.mode in ['fluxclient-layer-preview', 'fluxclient-calculate-image']:
             self.cairo_bitmap = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(
                 width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         else:
             self.cairo_bitmap = None
 
-        if self.mode.startswith('fluxclient'):
+        if self.mode == 'fluxclient-calculate-image':
+            self.cairo_fill = self.cairo
+        elif self.mode.startswith('fluxclient'):
             self.cairo_fill = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(
                 width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
+        elif self.is_by_layer:
+            self.cairo_fill = self.cairo
         else:
-            if self.is_by_layer:
-                self.cairo_fill = self.cairo
-            else:
-                self.cairo_fill = cairo.SVGSurface(outputs[2], int(
-                    width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
+            self.cairo_fill = cairo.SVGSurface(outputs[2], int(
+                width * self.device_units_per_user_units), int(height * self.device_units_per_user_units))
         self.context = SuperContext(self.cairo, self.cairo_bitmap, self.cairo_fill)
         self.bcontext = beamify.Context()
         self.bcontext.set_compensation_length(loop_compensation)
         # We must scale the context as the surface size is using physical units
-        print('The units scale is %f' % self.device_units_per_user_units, file=sys.stderr)
+        logger.info('The units scale is %f' % self.device_units_per_user_units)
         self.context.scale(self.device_units_per_user_units, self.device_units_per_user_units)
         # self.bitmap_context.scale(self.device_units_per_user_units, self.device_units_per_user_units)
         # self.bcontext.scale(self.device_units_per_user_units, self.device_units_per_user_units)
@@ -858,6 +859,14 @@ class ImageSurface(Surface):
         instance = cls(tree, output, dpi, None, parent_width=None, parent_height=None, scale=1,
                        mode='fluxclient-layer-preview', loop_compensation=0)
         return instance.layer_preview_finish(layer_color)
+    
+    @classmethod
+    def calculate_image(cls, bytestring=None, dpi=72, layer_color='#333333'):
+        tree = Tree(bytestring=bytestring)
+        output = [None, None, None]
+        instance = cls(tree, output, dpi, None, parent_width=None, parent_height=None, scale=1,
+                       mode='fluxclient-calculate-image', loop_compensation=0)
+        return instance.calculate_image_finish()
 
     # ref: https://stackoverflow.com/questions/29332424/changing-colour-of-an-image
     # adjust a little bit to match the color in beam studio
@@ -921,6 +930,23 @@ class ImageSurface(Surface):
         output = io.BytesIO()
         base_image.save(output, format='PNG')
         return output
+    
+    def calculate_image_finish(self):
+        if self.cairo_bitmap is not None and self.bitmap_available:
+            bitmap_data = io.BytesIO()
+            if self.bitmap_min_x is not None:
+                image_data = self.cairo_bitmap.write_to_png()
+                bitmap_image = Image.open(io.BytesIO(image_data))
+                # bitmap_image.save('/Users/dean/Downloads/fluxsvg/calculate_image_finish-before-crop.png')
+                bitmap_image = bitmap_image.crop((self.bitmap_min_x, self.bitmap_min_y, self.bitmap_max_x, self.bitmap_max_y))
+                bitmap_image.save(bitmap_data, format='PNG')
+            else:
+                self.cairo_bitmap.write_to_png(bitmap_data)
+            bitmap_image = Image.open(bitmap_data)
+            # bitmap_image.save('/Users/dean/Downloads/fluxsvg/calculate_image_finish.png')
+            return { 'pil_image': bitmap_image, 'bbox': { 'x': self.bitmap_min_x, 'y': self.bitmap_min_y } }
+        return None
+
 
     
     def finish(self):
