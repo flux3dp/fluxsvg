@@ -332,6 +332,7 @@ class Surface(object):
             self.filters = {}
         self._old_parent_node = self.parent_node = None
         self.is_by_layer = mode in ['beamstudio-by-layer']
+        self.cur_layer_name = None
         self.output = outputs[0] if not self.is_by_layer else outputs['nolayer']
         self.outputs = outputs
         self.dpi = dpi
@@ -747,15 +748,18 @@ class Surface(object):
             for child in node.children:
                 layer_name = None
                 root_context = None
-                if self.is_by_layer and node == self.root_node and child.tag == 'g':
+                if self.is_by_layer and self.cur_layer_name is None and child.tag == 'g':
                     layer_name = get_layer_name(child)
                     if layer_name in self.outputs:
                         i = 2
                         while '{}_{}'.format(layer_name, i) in self.outputs:
                             i += 1
-                if layer_name and layer_name != 'nolayer':
+                        layer_name = '{}_{}'.format(layer_name, i)
+                start_new_layer = layer_name and layer_name != 'nolayer'
+                if start_new_layer:
                     logger.info('Create new surface & context for {}'.format(layer_name))
                     root_context = self.context
+                    self.cur_layer_name = layer_name
                     layer_context = self.start_layer_surface(layer_name)
                     self.context = layer_context
                     self.context.scale(self.device_units_per_user_units, self.device_units_per_user_units)
@@ -763,10 +767,11 @@ class Surface(object):
                         self.root_width, self.root_height, self.root_viewbox, self.root_scale, preserved_ratio(self.root_node))
                     self.context.move_to(0, 0)
                 self.draw(child)
-                if layer_name and layer_name != 'nolayer':
+                if start_new_layer:
                     logger.info('{} Ended'.format(layer_name))
                     self.end_layer_surface()
                     self.context = root_context
+                    self.cur_layer_name = None
 
         # Apply filter, mask and opacity
         if filter_ or mask or (opacity < 1 and node.children):
