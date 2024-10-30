@@ -925,7 +925,8 @@ class ImageSurface(Surface):
             bitmap_image = Image.open(bitmap_data)
             if ratio < 1:
                 bitmap_w, bitmap_h = bitmap_image.size
-                bitmap_image = bitmap_image.resize((int(bitmap_w * ratio), int(bitmap_h * ratio)), Image.LANCZOS)
+                resize_w, resize_h = max(int(bitmap_w * ratio), 1), max(int(bitmap_h * ratio), 1)
+                bitmap_image = bitmap_image.resize((resize_w, resize_h), Image.LANCZOS)
             bitmap_image = self.tint_image(bitmap_image, layer_color)
             x = round(ratio * self.bitmap_min_x) if self.bitmap_min_x is not None else 0
             y = round(ratio * self.bitmap_min_y) if self.bitmap_min_y is not None else 0
