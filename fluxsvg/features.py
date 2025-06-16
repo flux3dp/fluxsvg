@@ -18,11 +18,15 @@
 Helpers related to SVG conditional processing.
 
 """
-
 import locale
 
 ROOT = 'http://www.w3.org/TR/SVG11/feature'
-LOCALE = locale.getdefaultlocale()[0] or ''
+
+try:
+    LOCALE = locale.getdefaultlocale()[0] or ''
+except Exception:
+    # Fallback if locale.getdefaultlocale() fails
+    LOCALE = ''
 SUPPORTED_FEATURES = frozenset((
     ROOT + '#' + feature for feature in (
         'SVG',
