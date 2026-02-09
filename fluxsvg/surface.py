@@ -663,8 +663,8 @@ class Surface(object):
             is_gradient_or_pattern = False
             self.context.save()
             self.bcontext.save()
-            fill_name = node.get('fill', 'black')
-            if fill_name == 'none' or fill_name == '#FFF' or fill_name == '#FFFFFF' or node.tag in NON_FILLABLE_TAGS:
+            fill_name = node.get('fill', 'black').lower()
+            if fill_name == 'none' or fill_name == '#fff' or fill_name == '#ffffff' or node.tag in NON_FILLABLE_TAGS:
                 fill_opacity = 0
             paint_source, paint_color = paint(fill_name)
             fill_paint_color = paint_color
